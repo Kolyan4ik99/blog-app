@@ -1,8 +1,10 @@
 package service
 
-import "github.com/gin-gonic/gin"
+import (
+	"net/http"
+)
 
 type AuthI interface {
-	Signup(ctx *gin.Context)
-	Signin(ctx *gin.Context)
+	Signup(w http.ResponseWriter, r *http.Request)
+	Signin(w http.ResponseWriter, r *http.Request)
 }

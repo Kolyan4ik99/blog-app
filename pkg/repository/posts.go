@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"time"
@@ -18,21 +19,22 @@ type PostInfo struct {
 	CreatedAt time.Time `json:"-" db:"created_at"`
 }
 
-func (p *Posts) GetAll() []*PostInfo {
-	post := new(PostInfo)
-
-	post.Author = 124
-	post.Id = 1526
-	post.Header = "Название статьи"
-	post.Text = "Тело статьи. ААА"
-
-	ret := make([]*PostInfo, 1)
-	ret[0] = post
-	return ret
+func (p *PostInfo) String() string {
+	return fmt.Sprintf("PostInfo {id=[%d], author=[%d], header=[%s], text=[%s], created_at=[%s]}",
+		p.Id, p.Author, p.Header, p.Text, p.CreatedAt)
 }
 
-func (p *Posts) GetById(id int) (*PostInfo, error) {
+func (p *Posts) GetAll(ctx *context.Context) ([]*PostInfo, error) {
+	query := fmt.Sprintf(`SELECT * FROM %s`, postTable)
+
+	var postsInfo []*PostInfo
+	err := p.Con.Select(&postsInfo, query)
+	return postsInfo, err
+}
+
+func (p *Posts) GetById(ctx *context.Context, id int) (*PostInfo, error) {
 	query := fmt.Sprintf(`SELECT * from %s where id = $1`, postTable)
+
 	var postInst PostInfo
 	err := p.Con.Get(&postInst, query, id)
 	if err != nil {
@@ -42,11 +44,24 @@ func (p *Posts) GetById(id int) (*PostInfo, error) {
 	return &postInst, nil
 }
 
-func (p *Posts) Save() {
+func (p *Posts) Save(ctx *context.Context, newPost *PostInfo) error {
+	query := fmt.Sprintf(`insert into %s 
+			(header, text, author) VALUES ($1, $2, $3)`, postTable)
+
+	_, err := p.Con.Exec(query, newPost.Header, newPost.Text, newPost.Author)
+	return err
 }
 
-func (p *Posts) UpdateById() {
+func (p *Posts) UpdateById(ctx *context.Context, newPost *PostInfo, id int) error {
+	query := fmt.Sprintf(`update %s set header=$1, text=$2 where id=$3`, postTable)
+
+	_, err := p.Con.Exec(query, newPost.Header, newPost.Text, id)
+	return err
 }
 
-func (p *Posts) DeleteById() {
+func (p *Posts) DeleteById(ctx *context.Context, id int) error {
+	query := fmt.Sprintf(`delete from %s where id=$1`, postTable)
+
+	_, err := p.Con.Exec(query, id)
+	return err
 }

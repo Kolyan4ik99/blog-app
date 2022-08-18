@@ -1,8 +1,8 @@
 create table if not exists users (
     id serial not null PRIMARY KEY,
-    name varchar(24) not null UNIQUE,
+    name varchar(24) not null,
     password varchar(24) not null,
-    email varchar(32) not null UNIQUE
+    email varchar(50) not null UNIQUE
 );
 
 create table if not exists posts (

@@ -2,7 +2,7 @@ package handler
 
 import (
 	"github.com/Kolyan4ik99/blog-app/pkg/service"
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 )
 
 // Handler В инициализации использую интерфейсы, дабы при изменении
@@ -13,32 +13,19 @@ type Handler struct {
 }
 
 // InitRouter конструктор роута с эндпоинтами
-func (h *Handler) InitRouter() *gin.Engine {
-	router := gin.New()
+func (h *Handler) InitRouter() *mux.Router {
+	router := mux.NewRouter()
 
-	auth := router.Group("/auth")
-	{
-		auth.POST("/sign-in", h.AuthService.Signin)
-		auth.POST("/sign-up", h.AuthService.Signup)
-	}
+	authPath := "/auth"
+	router.HandleFunc(authPath+"/sign-up", h.AuthService.Signup).Methods("POST")
+	router.HandleFunc(authPath+"/sign-in", h.AuthService.Signin).Methods("POST")
 
-	api := router.Group("/api")
-	{
-		postList := api.Group("/posts")
-		{
-			// Получение всех постов
-			postList.GET("/", h.PostService.GetPosts)
-		}
-
-		post := api.Group("/post")
-		{
-			// Получение поста по id
-			post.GET("/:id", h.PostService.GetPostByID)
-			post.POST("/", h.PostService.UploadPost)
-			post.PUT("/:id", h.PostService.UpdatePostByID)
-			post.DELETE("/:id", h.PostService.DeletePostByID)
-		}
-	}
+	apiPostPath := "/api/post"
+	router.HandleFunc(apiPostPath+"/", h.PostService.GetPosts).Methods("GET")
+	router.HandleFunc(apiPostPath+"/{id:[0-9]+}", h.PostService.GetPostByID).Methods("GET")
+	router.HandleFunc(apiPostPath+"/", h.PostService.UploadPost).Methods("POST")
+	router.HandleFunc(apiPostPath+"/{id:[0-9]+}", h.PostService.UpdatePostByID).Methods("PUT")
+	router.HandleFunc(apiPostPath+"/{id:[0-9]+}", h.PostService.DeletePostByID).Methods("DELETE")
 
 	return router
 }

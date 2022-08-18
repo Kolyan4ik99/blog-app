@@ -1,11 +1,13 @@
 package service
 
-import "github.com/gin-gonic/gin"
+import (
+	"net/http"
+)
 
 type PostsI interface {
-	GetPosts(ctx *gin.Context)
-	GetPostByID(ctx *gin.Context)
-	UploadPost(ctx *gin.Context)
-	UpdatePostByID(ctx *gin.Context)
-	DeletePostByID(ctx *gin.Context)
+	GetPosts(w http.ResponseWriter, r *http.Request)
+	GetPostByID(w http.ResponseWriter, r *http.Request)
+	UploadPost(w http.ResponseWriter, r *http.Request)
+	UpdatePostByID(w http.ResponseWriter, r *http.Request)
+	DeletePostByID(w http.ResponseWriter, r *http.Request)
 }
