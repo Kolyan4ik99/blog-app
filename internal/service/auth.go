@@ -3,11 +3,12 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"io"
+	"net/http"
+
 	"github.com/Kolyan4ik99/blog-app/internal/logger"
 	"github.com/Kolyan4ik99/blog-app/internal/repository"
 	"github.com/gin-gonic/gin"
-	"io"
-	"net/http"
 )
 
 type Auth struct {

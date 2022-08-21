@@ -2,14 +2,15 @@ package main
 
 import (
 	"context"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/Kolyan4ik99/blog-app/internal/handler"
 	"github.com/Kolyan4ik99/blog-app/internal/logger"
 	"github.com/Kolyan4ik99/blog-app/internal/repository"
 	"github.com/Kolyan4ik99/blog-app/internal/service"
 	"github.com/jmoiron/sqlx"
-	"os"
-	"os/signal"
-	"syscall"
 )
 
 func init() {

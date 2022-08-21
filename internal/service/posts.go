@@ -5,12 +5,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"github.com/Kolyan4ik99/blog-app/internal/logger"
-	"github.com/Kolyan4ik99/blog-app/internal/repository"
-	"github.com/gin-gonic/gin"
 	"io"
 	"net/http"
 	"strconv"
+
+	"github.com/Kolyan4ik99/blog-app/internal/logger"
+	"github.com/Kolyan4ik99/blog-app/internal/repository"
+	"github.com/gin-gonic/gin"
 )
 
 type Posts struct {
