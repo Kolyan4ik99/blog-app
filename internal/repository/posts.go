@@ -3,8 +3,9 @@ package repository
 import (
 	"context"
 	"fmt"
-	"github.com/jmoiron/sqlx"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type Posts struct {

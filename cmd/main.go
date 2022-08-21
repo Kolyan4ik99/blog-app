@@ -2,23 +2,22 @@ package main
 
 import (
 	"context"
-	"github.com/Kolyan4ik99/blog-app/internal"
-	"github.com/Kolyan4ik99/blog-app/pkg/handler"
-	"github.com/Kolyan4ik99/blog-app/pkg/repository"
-	"github.com/Kolyan4ik99/blog-app/pkg/service"
+	"github.com/Kolyan4ik99/blog-app/internal/handler"
+	"github.com/Kolyan4ik99/blog-app/internal/logger"
+	"github.com/Kolyan4ik99/blog-app/internal/repository"
+	"github.com/Kolyan4ik99/blog-app/internal/service"
 	"github.com/jmoiron/sqlx"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
 func init() {
-	internal.InitLogger(os.Stdout)
+	logger.InitLogger(os.Stdout)
 }
 
 func main() {
-	internal.Logger.Infoln("Start application")
+	logger.Logger.Infoln("Start application")
 	ctx := context.Background()
 
 	con, err := repository.SqlCon(repository.Config{
@@ -30,47 +29,38 @@ func main() {
 	})
 
 	if err != nil {
-		internal.Logger.Fatalln("Bad connection to postgres, maybe your DB IS DOWN ", err)
+		logger.Logger.Fatalln("Bad connection to postgres, maybe your DB IS DOWN ", err)
 	}
 
 	defer func(con *sqlx.DB) {
 		err := con.Close()
 		if err != nil {
-			internal.Logger.Errorln("Connection to postgres doesn't close")
+			logger.Logger.Errorln("Connection to postgres doesn't close")
 		} else {
-			internal.Logger.Infoln("Connection to postgres successful close")
+			logger.Logger.Infoln("Connection to postgres successful close")
 
 		}
 	}(con)
 
-	h := handler.Handler{
-		AuthService: &service.Auth{
+	h := handler.NewHandler(
+		&service.Auth{
 			Repo: &repository.Users{Con: con},
 			Ctx:  &ctx,
 		},
-		PostService: &service.Posts{
+		&service.Posts{
 			Repo: &repository.Posts{Con: con},
 			Ctx:  &ctx,
-		},
-	}
-
-	server := &http.Server{
-		Addr:    ":8080",
-		Handler: h.InitRouter(),
-	}
+		})
 
 	sign := make(chan os.Signal, 1)
 	signal.Notify(sign, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
 		<-sign
-		internal.Logger.Infoln("Application was close from System signal")
+		logger.Logger.Infoln("Application was close from System signal")
 		os.Exit(1)
 	}()
 
-	err = server.ListenAndServe()
-	if err != nil {
-		return
-	}
+	h.InitRouter().Run(":8080")
 
 }

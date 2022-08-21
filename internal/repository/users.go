@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/Kolyan4ik99/blog-app/internal"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -30,37 +29,32 @@ func (u *Users) Find(ctx *context.Context, id int) *UserInfo {
 }
 
 // Save сохраняем пользователя в таблице
-func (u *Users) Save(ctx *context.Context, info *UserInfo) (*UserInfo, error) {
+func (u *Users) Save(ctx *context.Context, info *UserInfo) (int64, error) {
 	countQuery := fmt.Sprintf(`select count(*) from %s where name=$1 and email=$2`, userTable)
 
 	var counts int
 	err := u.Con.Get(&counts, countQuery, info.Name, info.Email)
 	if err != nil {
-		return nil, err
+		return -1, err
 	}
 
 	if counts > 0 {
-		return nil, errors.New(fmt.Sprintf("User with name=%s and email=%s is duplicate", info.Name, info.Email))
+		return -1, errors.New(fmt.Sprintf("User with name=%s and email=%s is duplicate", info.Name, info.Email))
 	}
 
-	query := fmt.Sprintf(`insert into %s (name, password, email) values ($1, $2, $3)`, userTable)
+	query := fmt.Sprintf(`insert into %s (name, password, email) values ($1, $2, $3) returning id`, userTable)
 
-	tx, err := u.Con.Begin()
+	tx, _ := u.Con.Begin()
 
-	_, err = u.Con.Exec(query, info.Name, info.Password, info.Email)
-	if err != nil {
+	result := u.Con.QueryRowContext(*ctx, query, info.Name, info.Password, info.Email)
+
+	if result.Err() != nil {
 		tx.Rollback()
-		return nil, err
+		return -1, result.Err()
 	}
+	var newUserId int64
+	result.Scan(&newUserId)
 	tx.Commit()
 
-	findQuery := fmt.Sprintf(`select * from %s where name=$1 and email=$2`, userTable)
-	var retUser UserInfo
-	err = u.Con.Get(&retUser, findQuery, info.Name, info.Email)
-	fmt.Println("AAA", retUser)
-	if err != nil {
-		internal.Logger.Infoln("AAA")
-		return nil, err
-	}
-	return &retUser, nil
+	return newUserId, nil
 }
