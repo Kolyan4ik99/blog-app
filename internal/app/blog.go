@@ -21,18 +21,17 @@ func Run() {
 	logger.Logger.Infoln("Start application")
 	cfg, err := config.Init(config.ProdEnv, "config")
 	if err != nil {
-		log.Fatal("bad initial config file")
+		log.Fatal("bad initial config file", err)
 	}
 	ctx := context.Background()
 
-	fmt.Println(cfg.DB)
-
 	con, err := postgres.SqlCon(ctx, postgres.Config{
-		Host:     "localhost",
-		Port:     "5432",
-		User:     "postgres",
-		Password: "postgres",
-		Dbname:   "postgres",
+		Host:     cfg.DB.Host,
+		Port:     cfg.DB.Port,
+		User:     cfg.DB.User,
+		Password: cfg.DB.Password,
+		Dbname:   cfg.DB.Dbname,
+		SSLMode:  cfg.DB.SSLMode,
 	})
 
 	if err != nil {
@@ -72,5 +71,8 @@ func Run() {
 		os.Exit(1)
 	}()
 
-	h.InitRouter().Run(":8080")
+	err = h.InitRouter().Run(fmt.Sprintf(":%d", cfg.Server.Port))
+	if err != nil {
+		return
+	}
 }

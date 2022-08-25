@@ -18,13 +18,14 @@ type Config struct {
 	Port,
 	User,
 	Password,
+	SSLMode,
 	Dbname string
 }
 
 func SqlCon(ctx context.Context, c Config) (*sqlx.DB, error) {
 	db, err := sqlx.ConnectContext(ctx, "postgres",
-		fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-			c.Host, c.Port, c.User, c.Password, c.Dbname))
+		fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+			c.Host, c.Port, c.User, c.Password, c.Dbname, c.SSLMode))
 	if err != nil {
 		return nil, err
 	}

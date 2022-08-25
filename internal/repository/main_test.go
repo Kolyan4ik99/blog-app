@@ -17,7 +17,10 @@ var postRepository *Post
 
 func TestMain(t *testing.M) {
 	ctx = context.Background()
-	cfg, err := config.Init(config.QaEnv, "config")
+	cfg, err := config.Init("../../"+config.QaEnv, "config")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	configDB := postgres.Config{
 		Host:     cfg.DB.Host,
@@ -25,6 +28,7 @@ func TestMain(t *testing.M) {
 		User:     cfg.DB.User,
 		Password: cfg.DB.Password,
 		Dbname:   cfg.DB.Dbname,
+		SSLMode:  cfg.DB.SSLMode,
 	}
 
 	con, err := postgres.SqlCon(ctx, configDB)
