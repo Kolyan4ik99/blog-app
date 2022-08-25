@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"database/sql"
+	"math/rand"
 	"testing"
 
 	"github.com/Kolyan4ik99/blog-app/internal/model"
@@ -27,12 +29,60 @@ func createRandomPost(t *testing.T, user *model.UserInfo) *model.PostInfo {
 	require.Equal(t, argsPost.Author, createPost.Author)
 	require.Equal(t, argsPost.Header, createPost.Header)
 	require.Equal(t, argsPost.Text, createPost.Text)
+	require.NotZero(t, createPost.CreatedAt)
 
 	return createPost
 }
 
-func TestGetById(t *testing.T) {
+func TestPost_Save_GetById(t *testing.T) {
 	user := createRandomUser(t)
 
 	createRandomPost(t, user)
+}
+
+func TestPost_GetAllByAuthorId(t *testing.T) {
+	user := createRandomUser(t)
+
+	n := 1 + rand.Intn(5)
+	for i := 0; i < n; i++ {
+		createRandomPost(t, user)
+	}
+
+	createPosts, err := postRepository.GetAllByAuthorId(ctx, user.Id)
+	require.NoError(t, err)
+	require.NotEmpty(t, createPosts)
+
+	require.Equal(t, n, len(createPosts))
+}
+
+func TestPost_DeleteById(t *testing.T) {
+	user := createRandomUser(t)
+
+	post := createRandomPost(t, user)
+
+	err := postRepository.DeleteById(ctx, post.Id)
+	require.NoError(t, err)
+
+	postAfterDelete, err := postRepository.GetById(ctx, post.Id)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+	require.Empty(t, postAfterDelete)
+}
+
+func TestPost_UpdateById(t *testing.T) {
+	user := createRandomUser(t)
+
+	post := createRandomPost(t, user)
+
+	argsUpdate := &model.PostInfo{
+		Header: util.RandomString(7),
+		Text:   util.RandomString(11),
+	}
+
+	updatePost, err := postRepository.UpdateById(ctx, post.Id, argsUpdate)
+	require.NoError(t, err)
+	require.NotEmpty(t, updatePost)
+
+	require.Equal(t, post.Author, updatePost.Author)
+	require.Equal(t, argsUpdate.Header, updatePost.Header)
+	require.Equal(t, argsUpdate.Text, updatePost.Text)
 }

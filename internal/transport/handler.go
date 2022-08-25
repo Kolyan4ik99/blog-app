@@ -1,15 +1,14 @@
-package handler
+package transport
 
 import (
-	"github.com/Kolyan4ik99/blog-app/internal/transport"
 	"github.com/gin-gonic/gin"
 )
 
 // Handler В инициализации использую интерфейсы, дабы при изменении
 // реализации сервисов не изменять реализацию InitRouter
 type Handler struct {
-	authTransport transport.AuthInterface
-	postTransport transport.PostInterface
+	authTransport AuthInterface
+	postTransport PostInterface
 }
 
 // InitRouter конструктор роута с эндпоинтами
@@ -27,7 +26,7 @@ func (h *Handler) InitRouter() *gin.Engine {
 		{
 			post := api.Group("/post")
 			{
-				post.GET("/", h.postTransport.GetPosts)
+				post.GET("/", h.postTransport.GetPostsByAuthor)
 				post.GET("/:id", h.postTransport.GetPostByID)
 
 				post.POST("/", h.postTransport.UploadPost)
@@ -39,7 +38,7 @@ func (h *Handler) InitRouter() *gin.Engine {
 	return router
 }
 
-func NewHandler(auth transport.AuthInterface, post transport.PostInterface) *Handler {
+func NewHandler(auth AuthInterface, post PostInterface) *Handler {
 	return &Handler{
 		authTransport: auth,
 		postTransport: post,

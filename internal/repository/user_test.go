@@ -31,11 +31,11 @@ func createRandomUser(t *testing.T) *model.UserInfo {
 	return newUser
 }
 
-func TestSave(t *testing.T) {
+func TestUser_Save_GetById(t *testing.T) {
 	createRandomUser(t)
 }
 
-func TestDeleteById(t *testing.T) {
+func TestUser_DeleteById(t *testing.T) {
 	user := createRandomUser(t)
 
 	err := userRepository.DeleteById(ctx, user.Id)
@@ -46,7 +46,7 @@ func TestDeleteById(t *testing.T) {
 	require.ErrorIs(t, err, sql.ErrNoRows)
 }
 
-func TestUpdateById(t *testing.T) {
+func TestUser_UpdateById(t *testing.T) {
 	user := createRandomUser(t)
 
 	argsForUpdate := &model.UserInfo{

@@ -5,6 +5,9 @@ import (
 	"log"
 	"os"
 	"testing"
+
+	"github.com/Kolyan4ik99/blog-app/config"
+	"github.com/Kolyan4ik99/blog-app/pkg/postgres"
 )
 
 var ctx context.Context
@@ -14,16 +17,17 @@ var postRepository *Post
 
 func TestMain(t *testing.M) {
 	ctx = context.Background()
+	cfg, err := config.Init(config.QaEnv, "config")
 
-	config := Config{
-		Host:     "localhost",
-		Port:     "5432",
-		User:     "postgres",
-		Password: "postgres",
-		Dbname:   "postgres",
+	configDB := postgres.Config{
+		Host:     cfg.DB.Host,
+		Port:     cfg.DB.Port,
+		User:     cfg.DB.User,
+		Password: cfg.DB.Password,
+		Dbname:   cfg.DB.Dbname,
 	}
 
-	con, err := SqlCon(ctx, config)
+	con, err := postgres.SqlCon(ctx, configDB)
 	if err != nil {
 		log.Fatal("connection to test DB is failure", err)
 	}
