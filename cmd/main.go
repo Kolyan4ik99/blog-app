@@ -10,6 +10,7 @@ import (
 	"github.com/Kolyan4ik99/blog-app/internal/logger"
 	"github.com/Kolyan4ik99/blog-app/internal/repository"
 	"github.com/Kolyan4ik99/blog-app/internal/service"
+	"github.com/Kolyan4ik99/blog-app/internal/transport"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -21,7 +22,7 @@ func main() {
 	logger.Logger.Infoln("Start application")
 	ctx := context.Background()
 
-	con, err := repository.SqlCon(repository.Config{
+	con, err := repository.SqlCon(ctx, repository.Config{
 		Host:     "localhost",
 		Port:     "5432",
 		User:     "postgres",
@@ -43,21 +44,27 @@ func main() {
 		}
 	}(con)
 
+	// DI auth
+	authRepository := repository.NewUser(con)
+	authService := service.NewAuth(authRepository)
+	authTransport := transport.NewAuth(ctx, authService)
+
+	// DI post
+	postRepository := repository.NewPost(con)
+	postService := service.NewPost(postRepository)
+	postTransport := transport.NewPost(ctx, postService)
+
 	h := handler.NewHandler(
-		&service.Auth{
-			Repo: &repository.Users{Con: con},
-			Ctx:  &ctx,
-		},
-		&service.Posts{
-			Repo: &repository.Posts{Con: con},
-			Ctx:  &ctx,
-		})
+		authTransport,
+		postTransport)
 
 	sign := make(chan os.Signal, 1)
 	signal.Notify(sign, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
 		<-sign
+		_, cancel := context.WithCancel(ctx)
+		cancel()
 		logger.Logger.Infoln("Application was close from System signal")
 		os.Exit(1)
 	}()

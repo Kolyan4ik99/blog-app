@@ -20,5 +20,8 @@ db-up:
     --env POSTGRES_PASSWORD=postgres \
     postgres
 
+test:
+	@go test -v -cover ./...
+
 db-down:
 

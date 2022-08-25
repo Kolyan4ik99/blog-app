@@ -1,15 +1,15 @@
 package handler
 
 import (
-	"github.com/Kolyan4ik99/blog-app/internal/service"
+	"github.com/Kolyan4ik99/blog-app/internal/transport"
 	"github.com/gin-gonic/gin"
 )
 
 // Handler В инициализации использую интерфейсы, дабы при изменении
 // реализации сервисов не изменять реализацию InitRouter
 type Handler struct {
-	authService service.AuthI
-	postService service.PostsI
+	authTransport transport.AuthInterface
+	postTransport transport.PostInterface
 }
 
 // InitRouter конструктор роута с эндпоинтами
@@ -20,28 +20,28 @@ func (h *Handler) InitRouter() *gin.Engine {
 	{
 		auth := v1.Group("/auth")
 		{
-			auth.POST("/sing-up", h.authService.Signup)
-			auth.POST("/sing-in", h.authService.Signin)
+			auth.POST("/sing-up", h.authTransport.Signup)
+			auth.POST("/sing-in", h.authTransport.Signin)
 		}
 		api := v1.Group("/api")
 		{
 			post := api.Group("/post")
 			{
-				post.GET("/", h.postService.GetPosts)
-				post.GET("/:id", h.postService.GetPostByID)
+				post.GET("/", h.postTransport.GetPosts)
+				post.GET("/:id", h.postTransport.GetPostByID)
 
-				post.POST("/", h.postService.UploadPost)
-				post.PUT("/:id", h.postService.UpdatePostByID)
-				post.DELETE("/:id", h.postService.DeletePostByID)
+				post.POST("/", h.postTransport.UploadPost)
+				post.PUT("/:id", h.postTransport.UpdatePostByID)
+				post.DELETE("/:id", h.postTransport.DeletePostByID)
 			}
 		}
 	}
 	return router
 }
 
-func NewHandler(auth service.AuthI, post service.PostsI) *Handler {
+func NewHandler(auth transport.AuthInterface, post transport.PostInterface) *Handler {
 	return &Handler{
-		authService: auth,
-		postService: post,
+		authTransport: auth,
+		postTransport: post,
 	}
 }

@@ -2,47 +2,35 @@ package service
 
 import (
 	"context"
-	"encoding/json"
-	"io"
-	"net/http"
 
-	"github.com/Kolyan4ik99/blog-app/internal/logger"
+	"github.com/Kolyan4ik99/blog-app/internal/model"
 	"github.com/Kolyan4ik99/blog-app/internal/repository"
-	"github.com/gin-gonic/gin"
 )
 
+type AuthInterface interface {
+	SignUp(ctx context.Context, user *model.UserInfo) (int64, error)
+	SignIn(ctx context.Context, user *model.UserInfo) error
+}
+
 type Auth struct {
-	Repo *repository.Users
-	Ctx  *context.Context
+	repo repository.UserInterface
 }
 
-func (a *Auth) Signup(c *gin.Context) {
-	var user repository.UserInfo
-	arr, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		BadRequest(c)
-		return
-	}
-	defer c.Request.Body.Close()
-	err = json.Unmarshal(arr, &user)
-	if err != nil {
-		BadRequest(c)
-		logger.Logger.Warningf("Bad request: %s\n", err)
-		return
-	}
-
-	newUserId, err := a.Repo.Save(a.Ctx, &user)
-	if err != nil {
-		BadRequest(c)
-		logger.Logger.Warningf("Bad request: %s\n", err)
-		return
-	}
-
-	logger.Logger.Infof("Sign-up was succesful completed, new user id = %d", newUserId)
-	c.JSON(http.StatusOK, newUserId)
+func NewAuth(repo repository.UserInterface) *Auth {
+	return &Auth{repo: repo}
 }
 
-func (a *Auth) Signin(c *gin.Context) {
+func (a *Auth) SignUp(ctx context.Context, user *model.UserInfo) (int64, error) {
+	newUserId, err := a.repo.Save(ctx, user)
+	if err != nil {
+		return 0, err
+	}
+
+	return newUserId, nil
+}
+
+func (a *Auth) SignIn(ctx context.Context, user *model.UserInfo) error {
 	// TODO необходимо реализовать аутентификацию
 	panic("implement me")
+	return nil
 }
