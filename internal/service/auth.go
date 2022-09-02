@@ -21,7 +21,7 @@ func NewAuth(repo repository.UserInterface) *Auth {
 }
 
 func (a *Auth) SignUp(ctx context.Context, user *model.UserInfo) (int64, error) {
-	return a.repo.Save(ctx, user)
+	return a.repo.Create(ctx, user)
 }
 
 func (a *Auth) SignIn(ctx context.Context, user *model.UserInfo) error {

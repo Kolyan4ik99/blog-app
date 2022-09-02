@@ -16,7 +16,7 @@ func createRandomUser(t *testing.T) *model.UserInfo {
 		Password: util.RandomString(6),
 	}
 
-	id, err := TestUserRepository.Save(ctx, arg)
+	id, err := TestUserRepository.Create(ctx, arg)
 	require.NoError(t, err)
 	require.NotZero(t, id)
 

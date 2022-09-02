@@ -11,7 +11,7 @@ import (
 
 type UserInterface interface {
 	GetById(ctx context.Context, id int64) (*model.UserInfo, error)
-	Save(ctx context.Context, newUser *model.UserInfo) (int64, error)
+	Create(ctx context.Context, newUser *model.UserInfo) (int64, error)
 	DeleteById(ctx context.Context, userId int64) error
 	UpdateById(ctx context.Context, userId int64, user *model.UserInfo) (*model.UserInfo, error)
 }
@@ -42,8 +42,8 @@ func (u *User) GetById(ctx context.Context, id int64) (*model.UserInfo, error) {
 	return &user, nil
 }
 
-// Save insert user to table with users
-func (u *User) Save(ctx context.Context, newUser *model.UserInfo) (int64, error) {
+// Create insert user to table with users
+func (u *User) Create(ctx context.Context, newUser *model.UserInfo) (int64, error) {
 	query := fmt.Sprintf(`insert into %s (name, password, email) values ($1, $2, $3) returning id`, postgres.UserTable)
 
 	rows := u.con.QueryRowxContext(ctx, query, newUser.Name, newUser.Password, newUser.Email)
