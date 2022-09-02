@@ -1,14 +1,18 @@
-package internal
+package logger
 
 import (
-	"github.com/sirupsen/logrus"
 	"io"
+
+	"github.com/sirupsen/logrus"
 )
 
 var Logger *logrus.Logger
 
+func init() {
+	Logger = logrus.New()
+}
+
 // InitLogger define standard loggers
 func InitLogger(out io.Writer) {
-	Logger = logrus.New()
 	logrus.SetOutput(out)
 }
