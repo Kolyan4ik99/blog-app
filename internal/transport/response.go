@@ -1,19 +1,15 @@
 package transport
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 )
 
-func BadRequest(c *gin.Context) {
-	c.Status(http.StatusBadRequest)
+type Response struct {
+	Message string
 }
 
-func NotFound(c *gin.Context) {
-	c.Status(http.StatusNotFound)
-}
-
-func InternalServerError(c *gin.Context) {
-	c.Status(http.StatusInternalServerError)
+func NewResponse(c *gin.Context, status int, message string) {
+	c.JSON(status, Response{
+		Message: message,
+	})
 }

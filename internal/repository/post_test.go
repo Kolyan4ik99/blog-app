@@ -17,11 +17,11 @@ func createRandomPost(t *testing.T, user *model.UserInfo) *model.PostInfo {
 		Text:   util.RandomString(50),
 	}
 
-	id, err := postRepository.Save(ctx, argsPost)
+	id, err := TestPostRepository.Save(ctx, argsPost)
 	require.NoError(t, err)
 	require.NotZero(t, id)
 
-	createPost, err := postRepository.GetById(ctx, id)
+	createPost, err := TestPostRepository.GetById(ctx, id)
 	require.NoError(t, err)
 	require.NotEmpty(t, createPost)
 
@@ -48,7 +48,7 @@ func TestPost_GetAllByAuthorId(t *testing.T) {
 		createRandomPost(t, user)
 	}
 
-	createPosts, err := postRepository.GetAllByAuthorId(ctx, user.Id)
+	createPosts, err := TestPostRepository.GetAllByAuthorId(ctx, user.Id)
 	require.NoError(t, err)
 	require.NotEmpty(t, createPosts)
 
@@ -60,10 +60,10 @@ func TestPost_DeleteById(t *testing.T) {
 
 	post := createRandomPost(t, user)
 
-	err := postRepository.DeleteById(ctx, post.Id)
+	err := TestPostRepository.DeleteById(ctx, post.Id)
 	require.NoError(t, err)
 
-	postAfterDelete, err := postRepository.GetById(ctx, post.Id)
+	postAfterDelete, err := TestPostRepository.GetById(ctx, post.Id)
 	require.ErrorIs(t, err, sql.ErrNoRows)
 	require.Empty(t, postAfterDelete)
 }
@@ -78,7 +78,7 @@ func TestPost_UpdateById(t *testing.T) {
 		Text:   util.RandomString(11),
 	}
 
-	updatePost, err := postRepository.UpdateById(ctx, post.Id, argsUpdate)
+	updatePost, err := TestPostRepository.UpdateById(ctx, post.Id, argsUpdate)
 	require.NoError(t, err)
 	require.NotEmpty(t, updatePost)
 

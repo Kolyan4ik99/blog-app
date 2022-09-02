@@ -2,6 +2,8 @@ package transport
 
 import (
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // Handler В инициализации использую интерфейсы, дабы при изменении
@@ -14,6 +16,8 @@ type Handler struct {
 // InitRouter конструктор роута с эндпоинтами
 func (h *Handler) InitRouter() *gin.Engine {
 	router := gin.New()
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	v1 := router.Group("/v1")
 	{

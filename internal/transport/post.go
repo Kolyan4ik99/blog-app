@@ -2,7 +2,9 @@ package transport
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -35,82 +37,112 @@ func NewPost(ctx context.Context, newPostService service.PostInterface) *Post {
 	}
 }
 
+// GetPostsByAuthor godoc
+// @Summary      list posts by author
+// @Description  get list posts by author id
+// @Tags         posts
+// @Accept       json
+// @Produce      json
+// @Param        id   path     int  true  "author_id"
+// @Success      200  {object}  model.PostInfo
+// @Failure      400  {object}  transport.Response
+// @Failure      404  {object}  transport.Response
+// @Router       /api/post/{id} [get]
 func (p *Post) GetPostsByAuthor(c *gin.Context) {
 	postId, err := p.parsePostId(c)
 	if err != nil {
-		BadRequest(c)
+		NewResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	foundPosts, err := p.postService.GetPostsByAuthor(p.ctx, postId)
 	if err != nil {
-		InternalServerError(c)
+		if errors.Is(err, sql.ErrNoRows) {
+			NewResponse(c, http.StatusNotFound,
+				fmt.Sprintf("post with author_id = %d not found", postId))
+		} else {
+			NewResponse(c, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 
 	c.JSON(http.StatusOK, foundPosts)
 }
 
+// GetPostByID godoc
+// @Summary      post by id
+// @Description  get post by id
+// @Tags         posts
+// @Accept       json
+// @Produce      json
+// @Param        id   path     int  true  "author_id"
+// @Success      200  {object}  model.PostInfo
+// @Failure      400  {object}  transport.Response
+// @Failure      404  {object}  transport.Response
+// @Router       /api/post/{id} [get]
 func (p *Post) GetPostByID(c *gin.Context) {
 	postId, err := p.parsePostId(c)
 	if err != nil {
-		BadRequest(c)
+		NewResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	foundPost, err := p.postService.GetPostByID(p.ctx, postId)
 	if err != nil {
-		InternalServerError(c)
+		NewResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, foundPost)
 }
 
+// TODO add swag doc
 func (p *Post) UploadPost(c *gin.Context) {
 	post, err := parseBodyToPostInfo(c)
 	if err != nil {
-		BadRequest(c)
+		NewResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	id, err := p.postService.UploadPost(p.ctx, post)
 	if err != nil {
-		InternalServerError(c)
+		NewResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusCreated, id)
 }
 
+// TODO add swag doc
 func (p *Post) UpdatePostByID(c *gin.Context) {
 	postId, err := p.parsePostId(c)
 	if err != nil {
-		BadRequest(c)
+		NewResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	post, err := parseBodyToPostInfo(c)
 	if err != nil {
-		BadRequest(c)
+		NewResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	updatePost, err := p.postService.UpdatePostByID(p.ctx, postId, post)
 	if err != nil {
-		InternalServerError(c)
+		NewResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, updatePost)
 }
 
+// TODO add swag doc
 func (p *Post) DeletePostByID(c *gin.Context) {
 	postId, err := p.parsePostId(c)
 	if err != nil {
-		BadRequest(c)
+		NewResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	err = p.postService.DeletePostByID(p.ctx, postId)
 	if err != nil {
-		InternalServerError(c)
+		NewResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	c.Status(http.StatusOK)

@@ -12,8 +12,8 @@ import (
 
 var ctx context.Context
 
-var userRepository *User
-var postRepository *Post
+var TestUserRepository *User
+var TestPostRepository *Post
 
 func TestMain(t *testing.M) {
 	ctx = context.Background()
@@ -36,8 +36,8 @@ func TestMain(t *testing.M) {
 		log.Fatal("connection to test DB is failure", err)
 	}
 
-	userRepository = NewUser(con)
-	postRepository = NewPost(con)
+	TestUserRepository = NewUser(con)
+	TestPostRepository = NewPost(con)
 
 	os.Exit(t.Run())
 }

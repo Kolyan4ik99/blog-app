@@ -30,20 +30,20 @@ func (a *Auth) Signup(c *gin.Context) {
 	var user model.UserInfo
 	arr, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		BadRequest(c)
+		NewResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	defer c.Request.Body.Close()
 	err = json.Unmarshal(arr, &user)
 	if err != nil {
-		BadRequest(c)
+		NewResponse(c, http.StatusBadRequest, err.Error())
 		logger.Logger.Warningf("Bad request: %s\n", err)
 		return
 	}
 
 	id, err := a.authService.SignUp(a.ctx, &user)
 	if err != nil {
-		BadRequest(c)
+		NewResponse(c, http.StatusBadRequest, err.Error())
 		logger.Logger.Warningf("Bad request: %s\n", err)
 		return
 	}
@@ -52,5 +52,6 @@ func (a *Auth) Signup(c *gin.Context) {
 }
 
 func (a *Auth) Signin(c *gin.Context) {
-
+	// TODO реализовать метод
+	c.JSON(http.StatusInternalServerError, "")
 }

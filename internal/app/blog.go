@@ -15,7 +15,15 @@ import (
 	"github.com/Kolyan4ik99/blog-app/internal/transport"
 	"github.com/Kolyan4ik99/blog-app/pkg/postgres"
 	"github.com/jmoiron/sqlx"
+
+	_ "github.com/Kolyan4ik99/blog-app/docs"
 )
+
+// @title           Swagger Example API
+// @version         1.0
+// @description     REST API for Blog App.
+// @host      localhost:8080
+// @BasePath  /v1/
 
 func Run() {
 	logger.Logger.Infoln("Start application")

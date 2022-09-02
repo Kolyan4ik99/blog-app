@@ -16,11 +16,11 @@ func createRandomUser(t *testing.T) *model.UserInfo {
 		Password: util.RandomString(6),
 	}
 
-	id, err := userRepository.Save(ctx, arg)
+	id, err := TestUserRepository.Save(ctx, arg)
 	require.NoError(t, err)
 	require.NotZero(t, id)
 
-	newUser, err := userRepository.GetById(ctx, id)
+	newUser, err := TestUserRepository.GetById(ctx, id)
 	require.NoError(t, err)
 	require.NotEmpty(t, newUser)
 
@@ -38,10 +38,10 @@ func TestUser_Save_GetById(t *testing.T) {
 func TestUser_DeleteById(t *testing.T) {
 	user := createRandomUser(t)
 
-	err := userRepository.DeleteById(ctx, user.Id)
+	err := TestUserRepository.DeleteById(ctx, user.Id)
 	require.NoError(t, err)
 
-	deleteUser, err := userRepository.GetById(ctx, user.Id)
+	deleteUser, err := TestUserRepository.GetById(ctx, user.Id)
 	require.Empty(t, deleteUser)
 	require.ErrorIs(t, err, sql.ErrNoRows)
 }
@@ -55,7 +55,7 @@ func TestUser_UpdateById(t *testing.T) {
 		Password: util.RandomString(8),
 	}
 
-	updateUser, err := userRepository.UpdateById(ctx, user.Id, argsForUpdate)
+	updateUser, err := TestUserRepository.UpdateById(ctx, user.Id, argsForUpdate)
 	require.NoError(t, err)
 	require.NotEmpty(t, updateUser)
 

@@ -17,15 +17,3 @@ func (u *UserInfo) String() string {
 	return fmt.Sprintf("UserInfo {id=[%d], name=[%s], email=[%s]}",
 		u.Id, u.Name, u.Email)
 }
-
-func RandomName() {
-
-}
-
-func RandomPassword() {
-
-}
-
-func randomEmail() {
-
-}
