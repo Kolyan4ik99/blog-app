@@ -14,6 +14,7 @@ func createRandomUser(t *testing.T) *model.UserInfo {
 		Name:     util.RandomString(6),
 		Email:    randomEmail(),
 		Password: util.RandomString(6),
+		Token:    util.RandomString(13),
 	}
 
 	id, err := TestUserRepository.Create(ctx, arg)
@@ -28,6 +29,7 @@ func createRandomUser(t *testing.T) *model.UserInfo {
 	require.Equal(t, arg.Name, newUser.Name)
 	require.Equal(t, arg.Email, newUser.Email)
 	require.Equal(t, arg.Password, newUser.Password)
+	require.Equal(t, arg.Token, newUser.Token)
 	return newUser
 }
 

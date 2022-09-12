@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/Kolyan4ik99/blog-app/internal/model"
 	"github.com/Kolyan4ik99/blog-app/pkg/postgres"
@@ -10,11 +11,12 @@ import (
 )
 
 type PostInterface interface {
-	GetAllByAuthorId(ctx context.Context, authorId int64) ([]*model.PostInfo, error)
+	GetAllByAuthorId(ctx context.Context) ([]*model.PostInfo, error)
 	GetById(ctx context.Context, id int64) (*model.PostInfo, error)
-	Save(ctx context.Context, newPost *model.PostInfo) (int64, error)
-	UpdateById(ctx context.Context, id int64, newPost *model.PostInfo) (*model.PostInfo, error)
+	Save(ctx context.Context, newPost *model.PostInfoInput) (int64, error)
+	UpdateById(ctx context.Context, id int64, newPost *model.PostInfoUpdate) (*model.PostInfo, error)
 	DeleteById(ctx context.Context, id int64) error
+	GetAllPostTTLBefore(ctx context.Context, ttl time.Time) ([]*model.PostInfo, error)
 }
 
 type Post struct {
@@ -25,11 +27,11 @@ func NewPost(con *sqlx.DB) *Post {
 	return &Post{con: con}
 }
 
-func (p *Post) GetAllByAuthorId(ctx context.Context, authorId int64) ([]*model.PostInfo, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s where author = $1`, postgres.PostTable)
+func (p *Post) GetAllByAuthorId(ctx context.Context) ([]*model.PostInfo, error) {
+	query := fmt.Sprintf(`SELECT * FROM %s`, postgres.PostTable)
 
 	var postsInfo []*model.PostInfo
-	err := p.con.SelectContext(ctx, &postsInfo, query, authorId)
+	err := p.con.SelectContext(ctx, &postsInfo, query)
 	if err != nil {
 		return nil, err
 	}
@@ -52,11 +54,11 @@ func (p *Post) GetById(ctx context.Context, id int64) (*model.PostInfo, error) {
 	return &foundPost, nil
 }
 
-func (p *Post) Save(ctx context.Context, newPost *model.PostInfo) (int64, error) {
+func (p *Post) Save(ctx context.Context, newPost *model.PostInfoInput) (int64, error) {
 	query := fmt.Sprintf(`insert into %s 
-			(header, text, author) VALUES ($1, $2, $3) returning id`, postgres.PostTable)
+			(header, text, author, time_to_live) VALUES ($1, $2, $3, $4) returning id`, postgres.PostTable)
 
-	result := p.con.QueryRowxContext(ctx, query, newPost.Header, newPost.Text, newPost.Author)
+	result := p.con.QueryRowxContext(ctx, query, newPost.Header, newPost.Text, newPost.Author, newPost.TTL)
 	if result.Err() != nil {
 		return 0, result.Err()
 	}
@@ -69,10 +71,10 @@ func (p *Post) Save(ctx context.Context, newPost *model.PostInfo) (int64, error)
 	return id, nil
 }
 
-func (p *Post) UpdateById(ctx context.Context, id int64, updatePostInfo *model.PostInfo) (*model.PostInfo, error) {
-	query := fmt.Sprintf(`update %s set header=$1, text=$2 where id=$3 returning *`, postgres.PostTable)
+func (p *Post) UpdateById(ctx context.Context, id int64, updatePost *model.PostInfoUpdate) (*model.PostInfo, error) {
+	query := fmt.Sprintf(`update %s set header=$1, text=$2, time_to_live=$3 where id=$4 returning *`, postgres.PostTable)
 
-	result := p.con.QueryRowxContext(ctx, query, updatePostInfo.Header, updatePostInfo.Text, id)
+	result := p.con.QueryRowxContext(ctx, query, updatePost.Header, updatePost.Text, updatePost.TTL, id)
 	if result.Err() != nil {
 		return nil, result.Err()
 	}
@@ -89,4 +91,15 @@ func (p *Post) DeleteById(ctx context.Context, id int64) error {
 
 	result := p.con.QueryRowxContext(ctx, query, id)
 	return result.Err()
+}
+
+func (p *Post) GetAllPostTTLBefore(ctx context.Context, ttl time.Time) ([]*model.PostInfo, error) {
+	query := fmt.Sprintf("Select * from %s where time_to_live < $1", postgres.PostTable)
+
+	var postsInfo []*model.PostInfo
+	err := p.con.SelectContext(ctx, &postsInfo, query, ttl)
+	if err != nil {
+		return nil, err
+	}
+	return postsInfo, nil
 }
