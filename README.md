@@ -18,43 +18,43 @@ URL для всех запросов
 
 ![img.png](imgs/img.png)
 
-1) Первый шаг - авторизоваться (email должен быть уникальным)
+1) Первый шаг - авторизоваться (email должен быть уникальным):
 
 
-    Request:
-    POST /auth/sign-up
-    {
-    "name": "NameNewUser",
-    "password": "14125",
-    "email": "mailForNewUser@gmail.com"
-    }
+        Request:
+        POST /auth/sign-up
+        {
+        "name": "NameNewUser",
+        "password": "14125",
+        "email": "mailForNewUser@gmail.com"
+        }
 
-    Response:
-    status: 201
-    user_id: 1
+        Response:
+        status: 201
+        user_id: 1
 
 
 ### В следующих запросах использовать header "Authorization": "Ваш токен"
 
 2) Создать новый пост. ttl - время жизни записи. Когда ttl станет меньше текущей даты и времени, запись удалится в течении минуты. 
-(Scheduler вычитывает все записи в условии и удаляет)
+(Scheduler вычитывает все записи в условии и удаляет):
 
 
-    POST /api/post/
-    {
-    "author": 1,
-    "header": "Interesting title your post",
-    "text": "Useful text for my post",
-    "ttl": "2022-10-11T12:05:41+04:00"
-    }
+        POST /api/post/
+        {
+        "author": 1,
+        "header": "Interesting title your post",
+        "text": "Useful text for my post",
+        "ttl": "2022-10-11T12:05:41+04:00"
+        }
 
-    Headers: "Authorization": "..." // Добавлять этот хедер в каждом запросе
+        Headers: "Authorization": "..." // Добавлять этот хедер в каждом запросе
 
-    Response:
-    status: 201
-    {
-    "Message": "post_id: 7"
-    }
+        Response:
+        status: 201
+        {
+        "Message": "post_id: 7"
+        }
 
 Получить все существующие посты:
 
