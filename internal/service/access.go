@@ -36,7 +36,7 @@ func (a *Access) GetAccessPost(ctx context.Context, postId int64) (*model.Access
 	if len(accessPosts) == 0 {
 		retAccess.IsAll = "no"
 	}
-	if len(accessPosts) == 1 && accessPosts[0].UserId == 0 {
+	if len(accessPosts) >= 1 && accessPosts[0].UserId == 0 {
 		retAccess.IsAll = accessPosts[0].Access
 	}
 	return retAccess, nil

@@ -10,9 +10,16 @@ API для блога.
 
 URL для всех запросов
 
-    http://localhost:8080/
+    http://localhost:8080/v1/
 
-Нужно авторизоваться: создать пользователя
+После запуска, можно открыть swagger:
+    
+    http://localhost:8080/swagger/index.html#/
+
+![img.png](imgs/img.png)
+
+1) Первый шаг - авторизоваться (email должен быть уникальным)
+
 
     Request:
     POST /auth/sign-up
@@ -27,18 +34,27 @@ URL для всех запросов
     user_id: 1
 
 
-Создать новый пост. Важно: author должен пройти этап sign-up
+### В следующих запросах использовать header "Authorization": "Ваш токен"
+
+2) Создать новый пост. ttl - время жизни записи. Когда ttl станет меньше текущей даты и времени, запись удалится в течении минуты. 
+(Scheduler вычитывает все записи в условии и удаляет)
+
 
     POST /api/post/
     {
-    "header": "Nikol253",
-    "text": "hwerhwkrmbe",
-    "author": 1
+    "author": 1,
+    "header": "Interesting title your post",
+    "text": "Useful text for my post",
+    "ttl": "2022-10-11T12:05:41+04:00"
     }
+
+    Headers: "Authorization": "..." // Добавлять этот хедер в каждом запросе
 
     Response:
     status: 201
-    Post was successful created
+    {
+    "Message": "post_id: 7"
+    }
 
 Получить все существующие посты:
 
@@ -46,25 +62,152 @@ URL для всех запросов
 
     Response:
     status: 200
-    [{
-    "author":1,
-    "header":"Nikol253",
-    "text":"hwerhwkrmbe"
-    }]
+    [
+    {
+    "id": 6,
+    "author": 1,
+    "header": "Interesting title your post",
+    "text": "Useful text for my post",
+    "ttl": "2022-09-12T12:05:41Z",
+    "created_at": "2022-09-12T00:12:37.766744Z"
+    },
+    {
+    "id": 7,
+    "author": 1,
+    "header": "Interesting title your post",
+    "text": "Useful text for my post",
+    "ttl": "2022-10-11T12:05:41Z",
+    "created_at": "2022-09-12T00:37:25.250112Z"
+    }
+    ]
 
 Получить пост по id:
 
-    GET /api/post/1
+    GET /api/post/6
 
     Response:
     status: 200
-    [{
-    "author":1,
-    "header":"Nikol253",
-    "text":"HWEHWEGWERgqgweg"
-    }]
+    {
+    "id": 6,
+    "author": 1,
+    "header": "Interesting title your post",
+    "text": "Useful text for my post",
+    "ttl": "2022-09-12T12:05:41Z",
+    "created_at": "2022-09-12T00:12:37.766744Z"
+    }
 
-    GET /api/post/51235
+    GET /api/post/51235 // Поиск не существующего post'а
 
     Response 
     status: 404
+
+Обновление поста по id:
+
+    PUT /api/post/6
+    {
+    "header": "Interesting title your post",
+    "text": "Useful text for my post",
+    "ttl": "2022-10-11T12:05:41+04:00"
+    }
+
+    Response
+    {
+    "id": 6,
+    "author": 1,
+    "header": "Interesting title your post",
+    "text": "Useful text for my post",
+    "ttl": "2022-10-11T12:05:41Z",
+    "created_at": "2022-09-12T00:12:37.766744Z"
+    }
+    status: 200
+
+Удаление поста по id:
+
+    DELETE /api/post/6
+
+    Response
+    status: 200
+
+## Как работает time_to_live:
+
+Реализовал scheduler который раз в минуту проверяет записи в целевой таблице. 
+Если ttl у записи меньше time.Now(), то запись устарела и её удаляем.
+
+## Как настроить уровень доступа к записям:
+
+Открыть доступ к записи всем пользователям:
+
+    POST /api/post/access/7
+    {
+    "is_all": "yes"
+    }
+
+    Response
+    {
+    "Message": "Created"
+    }
+    status: 201
+
+Закрыть доступ к записи всем пользователям:
+
+    POST /api/post/access/7
+    {
+    "is_all": "no"
+    }
+
+    Response
+    {
+    "Message": "Created"
+    }
+    status: 201
+
+Чтобы это проверить, вызываем (is_all: "no" - говорит что закрыт для всех):
+
+    GET /api/post/access/7
+
+    Response
+    {
+    "post_id": 7,
+    "UsersId": [{
+        "type": "no"
+    }],
+    "is_all": "no"
+    }
+    status: 200
+    
+Открыть всем кроме пользователя с id = 3:
+
+    POST /api/post/access/7
+    {
+    "is_all": "yes",
+    "UsersId": [{
+    "id": 3,
+    "type": "no"
+    }]
+    }
+
+    Response
+    {
+    "Message": "Created"
+    }
+    status: 201
+
+Проверяем:
+
+    GET /api/post/access/7
+
+    Response
+    {
+    "post_id": 7,
+    "UsersId": [
+    {
+    "type": "yes"
+    },
+    {
+    "id": 3,
+    "type": "no"
+    }
+    ],
+    "is_all": "yes"
+    }
+    status: 200

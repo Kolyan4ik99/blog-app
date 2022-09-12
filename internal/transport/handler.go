@@ -36,7 +36,7 @@ func (h *Handler) InitRouter() *gin.Engine {
 			api.Use(h.authMiddleware)
 			post := api.Group("/post")
 			{
-				post.GET("/", h.postTransport.GetPostsByAuthor)
+				post.GET("/", h.postTransport.GetAllPosts)
 				post.GET("/:id", h.postTransport.GetPostByID)
 
 				post.POST("/", h.postTransport.UploadPost)
