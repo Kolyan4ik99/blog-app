@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/Kolyan4ik99/blog-app/config"
 	"github.com/Kolyan4ik99/blog-app/internal/logger"
@@ -19,11 +20,16 @@ import (
 	_ "github.com/Kolyan4ik99/blog-app/docs"
 )
 
-// @title           Swagger Example API
+// @title           Blog API
 // @version         1.0
 // @description     REST API for Blog App.
 // @host      localhost:8080
 // @BasePath  /v1/
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @name                       Authorization
+// @in                         header
+// @description                Example: Bearer token
 
 func Run() {
 	logger.Logger.Infoln("Start application")
@@ -66,9 +72,17 @@ func Run() {
 	postService := service.NewPost(postRepository)
 	postTransport := transport.NewPost(ctx, postService)
 
+	accessRepository := repository.NewAccess(con)
+	accessService := service.NewAccess(accessRepository)
+	accessTransport := transport.NewAccess(ctx, accessService)
+
 	h := transport.NewHandler(
 		authTransport,
-		postTransport)
+		postTransport,
+		accessTransport)
+
+	scheduler := NewTimeExpiryScheduler(postRepository, time.Minute)
+	go scheduler.Run(ctx) // Start async
 
 	sign := make(chan os.Signal, 1)
 	signal.Notify(sign, syscall.SIGINT, syscall.SIGTERM)

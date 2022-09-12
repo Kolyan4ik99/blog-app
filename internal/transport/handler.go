@@ -9,8 +9,13 @@ import (
 // Handler В инициализации использую интерфейсы, дабы при изменении
 // реализации сервисов не изменять реализацию InitRouter
 type Handler struct {
-	authTransport AuthInterface
-	postTransport PostInterface
+	authTransport   AuthInterface
+	postTransport   PostInterface
+	accessTransport AccessInterface
+}
+
+func NewHandler(authTransport AuthInterface, postTransport PostInterface, accessTransport AccessInterface) *Handler {
+	return &Handler{authTransport: authTransport, postTransport: postTransport, accessTransport: accessTransport}
 }
 
 // InitRouter конструктор роута с эндпоинтами
@@ -28,6 +33,7 @@ func (h *Handler) InitRouter() *gin.Engine {
 		}
 		api := v1.Group("/api")
 		{
+			api.Use(h.authMiddleware)
 			post := api.Group("/post")
 			{
 				post.GET("/", h.postTransport.GetPostsByAuthor)
@@ -36,15 +42,14 @@ func (h *Handler) InitRouter() *gin.Engine {
 				post.POST("/", h.postTransport.UploadPost)
 				post.PUT("/:id", h.postTransport.UpdatePostByID)
 				post.DELETE("/:id", h.postTransport.DeletePostByID)
+
+				access := post.Group("/access")
+				{
+					access.GET("/:id", h.accessTransport.GetAccessPost)
+					access.POST("/:id", h.accessTransport.SetAccessPost)
+				}
 			}
 		}
 	}
 	return router
-}
-
-func NewHandler(auth AuthInterface, post PostInterface) *Handler {
-	return &Handler{
-		authTransport: auth,
-		postTransport: post,
-	}
 }

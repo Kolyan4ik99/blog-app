@@ -14,6 +14,7 @@ type UserInterface interface {
 	Create(ctx context.Context, newUser *model.UserInfo) (int64, error)
 	DeleteById(ctx context.Context, userId int64) error
 	UpdateById(ctx context.Context, userId int64, user *model.UserInfo) (*model.UserInfo, error)
+	GetByToken(ctx context.Context, token string) (*model.UserInfo, error)
 }
 
 type User struct {
@@ -44,9 +45,9 @@ func (u *User) GetById(ctx context.Context, id int64) (*model.UserInfo, error) {
 
 // Create insert user to table with users
 func (u *User) Create(ctx context.Context, newUser *model.UserInfo) (int64, error) {
-	query := fmt.Sprintf(`insert into %s (name, password, email) values ($1, $2, $3) returning id`, postgres.UserTable)
+	query := fmt.Sprintf(`insert into %s (name, password, email, token) values ($1, $2, $3, $4) returning id`, postgres.UserTable)
 
-	rows := u.con.QueryRowxContext(ctx, query, newUser.Name, newUser.Password, newUser.Email)
+	rows := u.con.QueryRowxContext(ctx, query, newUser.Name, newUser.Password, newUser.Email, newUser.Token)
 	if rows.Err() != nil {
 		return 0, rows.Err()
 	}
@@ -78,4 +79,20 @@ func (u *User) UpdateById(ctx context.Context, userId int64, user *model.UserInf
 		return nil, err
 	}
 	return &updateUser, nil
+}
+
+func (u *User) GetByToken(ctx context.Context, token string) (*model.UserInfo, error) {
+	//TODO implement me
+	query := fmt.Sprintf(`select * from %s where token = $1`, postgres.UserTable)
+
+	result := u.con.QueryRowxContext(ctx, query, token)
+	if result.Err() != nil {
+		return nil, result.Err()
+	}
+	var user model.UserInfo
+	err := result.StructScan(&user)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
