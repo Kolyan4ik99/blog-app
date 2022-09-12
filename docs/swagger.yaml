@@ -1,0 +1,444 @@
+basePath: /v1/
+definitions:
+  model.AccessOutput:
+    properties:
+      is_all:
+        example: "yes"
+        type: string
+      post_id:
+        example: 1
+        type: integer
+      usersId:
+        items:
+          $ref: '#/definitions/model.IdAndType'
+        type: array
+    type: object
+  model.AccessSetInput:
+    properties:
+      is_all:
+        example: "yes"
+        type: string
+      usersId:
+        items:
+          $ref: '#/definitions/model.IdAndType'
+        type: array
+    type: object
+  model.AuthInput:
+    properties:
+      email:
+        example: Emal@gmail.com
+        type: string
+      name:
+        example: Niko
+        type: string
+      password:
+        example: (9)SomePwd@41
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  model.AuthOutput:
+    properties:
+      token:
+        example: Bearer hherh34h3h14jhk5jhkmnkln
+        type: string
+      user_id:
+        example: 1
+        type: integer
+    type: object
+  model.IdAndType:
+    properties:
+      id:
+        example: 1
+        type: integer
+      type:
+        example: "yes"
+        type: string
+    required:
+    - id
+    - type
+    type: object
+  model.PostInfo:
+    properties:
+      author:
+        type: integer
+      created_at:
+        type: string
+      header:
+        type: string
+      id:
+        type: integer
+      text:
+        type: string
+      ttl:
+        example: "2022-09-09T12:52:20.641917Z"
+        type: string
+    type: object
+  model.PostInfoInput:
+    properties:
+      author:
+        example: 1
+        type: integer
+      header:
+        example: Interesting title your post
+        type: string
+      text:
+        example: Useful text for my post
+        type: string
+      ttl:
+        example: "2022-09-11T12:05:41+04:00"
+        type: string
+    required:
+    - author
+    - header
+    - text
+    - ttl
+    type: object
+  model.PostInfoUpdate:
+    properties:
+      header:
+        example: Interesting title your post
+        type: string
+      text:
+        example: Useful text for my post
+        type: string
+      ttl:
+        example: "2022-10-11T12:05:41+04:00"
+        type: string
+    type: object
+  transport.Response:
+    properties:
+      message:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: REST API for Blog App.
+  title: Blog API
+  version: "1.0"
+paths:
+  /api/post/:
+    get:
+      consumes:
+      - application/json
+      description: Get all posts in list
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.PostInfo'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/transport.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: List all posts
+      tags:
+      - posts
+    post:
+      consumes:
+      - application/json
+      description: Method create new post by required body
+      parameters:
+      - description: Body for new post
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/model.PostInfoInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/transport.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: Upload new post
+      tags:
+      - posts
+  /api/post/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Method delete post by post_id
+      parameters:
+      - description: post_id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/transport.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete post
+      tags:
+      - posts
+    get:
+      consumes:
+      - application/json
+      description: Get post by post_id
+      parameters:
+      - description: post_id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PostInfo'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/transport.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: Get post
+      tags:
+      - posts
+    put:
+      consumes:
+      - application/json
+      description: Method update post by required body
+      parameters:
+      - description: post_id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Body for update
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/model.PostInfoUpdate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PostInfo'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/transport.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: Update post
+      tags:
+      - posts
+  /api/post/access/{id}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Get all accesses in post by post_id.
+        "is_all" - все ли пользователи могут получить доступ
+        Остальные параметры определяют доступ для каждой записи отдельно
+      parameters:
+      - description: post_id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.AccessOutput'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/transport.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: List post accesses
+      tags:
+      - access
+    post:
+      consumes:
+      - application/json
+      description: Upload new accesses to posts by users
+      parameters:
+      - description: post_id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Body for new post
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/model.AccessSetInput'
+      produces:
+      - application/json
+      responses:
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/transport.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: Upload accesses
+      tags:
+      - access
+  /auth/sing-up:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Аутентификация пользователя. Для дальнейшей работы,
+        скопировать всё тело токена в Authorize -> Пользоваться сервисом
+      parameters:
+      - description: account info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/model.AuthInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.AuthOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/transport.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/transport.Response'
+      summary: Auth new user
+      tags:
+      - auth
+securityDefinitions:
+  ApiKeyAuth:
+    description: 'Example: Bearer token'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

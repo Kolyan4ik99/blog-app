@@ -24,8 +24,10 @@ func NewAccess(ctx context.Context, accessService service.AccessInterface) *Acce
 }
 
 // GetAccessPost godoc
-// @Summary      list accesses by post_id
-// @Description  get all accesses int post
+// @Summary      List post accesses
+// @Description  Get all accesses in post by post_id.
+// @Description  "is_all" - все ли пользователи могут получить доступ
+// @Description  Остальные параметры определяют доступ для каждой записи отдельно
 // @Security     ApiKeyAuth
 // @Tags         access
 // @Accept       json
@@ -49,8 +51,8 @@ func (a *Access) GetAccessPost(c *gin.Context) {
 }
 
 // SetAccessPost godoc
-// @Summary      list accesses by post_id
-// @Description  get all accesses int post
+// @Summary      Upload accesses
+// @Description  Upload new accesses to posts by users
 // @Security     ApiKeyAuth
 // @Tags         access
 // @Accept       json

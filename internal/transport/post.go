@@ -14,7 +14,7 @@ import (
 )
 
 type PostInterface interface {
-	GetPostsByAuthor(c *gin.Context)
+	GetAllPosts(c *gin.Context)
 	GetPostByID(c *gin.Context)
 	UploadPost(c *gin.Context)
 	UpdatePostByID(c *gin.Context)
@@ -37,9 +37,9 @@ var (
 	ErrBadParam = errors.New("bad posts param - id")
 )
 
-// GetPostsByAuthor godoc
-// @Summary      list posts by author
-// @Description  get all posts in list
+// GetAllPosts godoc
+// @Summary      List all posts
+// @Description  Get all posts in list
 // @Security     ApiKeyAuth
 // @Tags         posts
 // @Accept       json
@@ -47,7 +47,7 @@ var (
 // @Success      200  {object}  []model.PostInfo
 // @Failure      400,401,404,500 {object} transport.Response
 // @Router       /api/post/ [get]
-func (p *Post) GetPostsByAuthor(c *gin.Context) {
+func (p *Post) GetAllPosts(c *gin.Context) {
 	foundPosts, err := p.postService.GetAllPosts(p.ctx)
 	if err != nil {
 		NewResponse(c, http.StatusInternalServerError, err.Error())
@@ -57,9 +57,9 @@ func (p *Post) GetPostsByAuthor(c *gin.Context) {
 }
 
 // GetPostByID godoc
-// @Summary      post by id
-// @Description  get post by id
-// @Security    ApiKeyAuth
+// @Summary      Get post
+// @Description  Get post by post_id
+// @Security     ApiKeyAuth
 // @Tags         posts
 // @Accept       json
 // @Produce      json
@@ -89,7 +89,7 @@ func (p *Post) GetPostByID(c *gin.Context) {
 // UploadPost godoc
 // @Summary      Upload new post
 // @Description  Method create new post by required body
-// @Security    ApiKeyAuth
+// @Security     ApiKeyAuth
 // @Tags         posts
 // @Accept       json
 // @Produce      json
@@ -150,8 +150,8 @@ func (p *Post) UpdatePostByID(c *gin.Context) {
 }
 
 // DeletePostByID godoc
-// @Summary      Update post
-// @Description  Method update post by required body
+// @Summary      Delete post
+// @Description  Method delete post by post_id
 // @Security     ApiKeyAuth
 // @Tags         posts
 // @Accept       json
