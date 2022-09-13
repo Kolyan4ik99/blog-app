@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -322,6 +323,81 @@ func TestPost_UpdatePostByID(t *testing.T) {
 		})
 
 	}
+}
+
+func TestPost_DeletePostByID(t *testing.T) {
+	postInput := &model.PostInfoInput{
+		Header: util.RandomString(10),
+		Text:   util.RandomString(10),
+		Author: testAuthorId,
+		TTL:    time.Now().Add(time.Minute).Format(time.RFC3339),
+	}
+	postId := createPost(t, postInput)
+	path := "/v1/api/post/" + postId
+
+	request := defaultRequest(http.MethodDelete, path, nil)
+	request.Header.Set("Authorization", testAuthorToken)
+
+	response := httptest.NewRecorder()
+	mockServer.ServeHTTP(response, request)
+
+	res := response.Result()
+	require.Equal(t, res.StatusCode, http.StatusOK)
+
+	pathFind := "/v1/api/post/" + postId
+	scndRequest := defaultRequest(http.MethodGet, pathFind, nil)
+	scndRequest.Header.Set("Authorization", testAuthorToken)
+
+	scndResponse := httptest.NewRecorder()
+	mockServer.ServeHTTP(scndResponse, scndRequest)
+
+	scndRes := scndResponse.Result()
+	require.Equal(t, http.StatusNotFound, scndRes.StatusCode)
+}
+
+func TestPost_GetAllPosts(t *testing.T) {
+	pathFind := "/v1/api/post/"
+	request := defaultRequest(http.MethodGet, pathFind, nil)
+	request.Header.Set("Authorization", testAuthorToken)
+
+	firstResponse := httptest.NewRecorder()
+	mockServer.ServeHTTP(firstResponse, request)
+
+	firstRes := firstResponse.Result()
+	require.Equal(t, http.StatusOK, firstRes.StatusCode)
+	bytesFirst, err := io.ReadAll(firstRes.Body)
+	require.NoError(t, err)
+	require.NotEmpty(t, bytesFirst)
+
+	var firstPostsInfo []model.PostInfo
+	err = json.Unmarshal(bytesFirst, &firstPostsInfo)
+	require.NoError(t, err)
+
+	n := 1 + rand.Intn(9)
+	for i := 0; i < n; i++ {
+		postInput := &model.PostInfoInput{
+			Header: util.RandomString(10),
+			Text:   util.RandomString(10),
+			Author: testAuthorId,
+			TTL:    time.Now().Add(time.Minute).Format(time.RFC3339),
+		}
+		createPost(t, postInput)
+	}
+
+	response := httptest.NewRecorder()
+	mockServer.ServeHTTP(response, request)
+
+	res := response.Result()
+	require.Equal(t, http.StatusOK, res.StatusCode)
+	bytesSecond, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+	require.NotEmpty(t, bytesSecond)
+
+	var secondPostsInfo []model.PostInfo
+	err = json.Unmarshal(bytesSecond, &secondPostsInfo)
+	require.NoError(t, err)
+
+	require.Equal(t, len(firstPostsInfo)+n, len(secondPostsInfo))
 }
 
 func defaultRequest(method, path string, byteArr []byte) *http.Request {
