@@ -1,9 +1,10 @@
 package transport
 
 import (
-	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
+	"net/http"
+	"strings"
+	//swaggerFiles "github.com/swaggo/files"
+	//ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // Handler В инициализации использую интерфейсы, дабы при изменении
@@ -18,38 +19,50 @@ func NewHandler(authTransport AuthInterface, postTransport PostInterface, access
 	return &Handler{authTransport: authTransport, postTransport: postTransport, accessTransport: accessTransport}
 }
 
-// InitRouter конструктор роута с эндпоинтами
-func (h *Handler) InitRouter() *gin.Engine {
-	router := gin.New()
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	pathServ := r.URL.Path
+	method := r.Method
 
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	signUp := "/v1/auth/sing-up"
 
-	v1 := router.Group("/v1")
-	{
-		auth := v1.Group("/auth")
-		{
-			auth.POST("/sing-up", h.authTransport.Signup)
-			auth.POST("/sing-in", h.authTransport.Signin)
-		}
-		api := v1.Group("/api")
-		{
-			api.Use(h.authMiddleware)
-			post := api.Group("/post")
-			{
-				post.GET("/", h.postTransport.GetAllPosts)
-				post.GET("/:id", h.postTransport.GetPostByID)
+	getAllPosts := "/v1/api/post/"
+	getPostById := "/v1/api/post/"
+	uploadPost := "/v1/api/post/"
+	updatePost := "/v1/api/post/"
+	deletePost := "/v1/api/post/"
 
-				post.POST("/", h.postTransport.UploadPost)
-				post.PUT("/:id", h.postTransport.UpdatePostByID)
-				post.DELETE("/:id", h.postTransport.DeletePostByID)
+	getAccess := "/v1/api/post/access/"
+	postAccess := "/v1/api/post/access/"
 
-				access := post.Group("/access")
-				{
-					access.GET("/:id", h.accessTransport.GetAccessPost)
-					access.POST("/:id", h.accessTransport.SetAccessPost)
-				}
-			}
-		}
+	if pathServ == signUp {
+		h.authTransport.Signup(w, r)
+	} else if pathServ == getAllPosts && method == http.MethodGet {
+		h.postTransport.GetAllPosts(w, r)
+
+	} else if pathServ == uploadPost && method == http.MethodPost {
+		h.postTransport.UploadPost(w, r)
+
+	} else if strings.Contains(pathServ, updatePost) && method == http.MethodPut {
+		h.postTransport.UpdatePostByID(w, r)
+
+	} else if strings.Contains(pathServ, deletePost) && method == http.MethodDelete {
+		h.postTransport.DeletePostByID(w, r)
+
+	} else if strings.Contains(pathServ, getAccess) && method == http.MethodGet {
+		h.accessTransport.GetAccessPost(w, r)
+
+	} else if strings.Contains(pathServ, postAccess) && method == http.MethodPost {
+		h.accessTransport.SetAccessPost(w, r)
+
+	} else if strings.Contains(pathServ, getPostById) && method == http.MethodGet {
+		h.postTransport.GetPostByID(w, r)
 	}
-	return router
+}
+
+// InitRouter конструктор роута с эндпоинтами
+func (h *Handler) InitRouter() http.Handler {
+	mux := NewMiddlewareMux(h.authTransport)
+	mux.AppendMiddleware(mux.authMiddleware)
+	mux.Handle("/", h)
+	return mux
 }

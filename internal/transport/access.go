@@ -2,16 +2,17 @@ package transport
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"net/http"
 
 	"github.com/Kolyan4ik99/blog-app/internal/model"
 	"github.com/Kolyan4ik99/blog-app/internal/service"
-	"github.com/gin-gonic/gin"
 )
 
 type AccessInterface interface {
-	GetAccessPost(ctx *gin.Context)
-	SetAccessPost(ctx *gin.Context)
+	GetAccessPost(w http.ResponseWriter, r *http.Request)
+	SetAccessPost(w http.ResponseWriter, r *http.Request)
 }
 
 type Access struct {
@@ -36,18 +37,18 @@ func NewAccess(ctx context.Context, accessService service.AccessInterface) *Acce
 // @Success      200  {object}  []model.AccessOutput
 // @Failure      400,401,404,500 {object} transport.Response
 // @Router       /api/post/access/{id} [get]
-func (a *Access) GetAccessPost(c *gin.Context) {
-	postId, err := parsePostId(c)
+func (a *Access) GetAccessPost(w http.ResponseWriter, r *http.Request) {
+	postId, err := parsePostId(r)
 	if err != nil {
-		NewResponse(c, http.StatusBadRequest, err.Error())
+		NewResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	accessPosts, err := a.accessService.GetAccessPost(a.ctx, postId)
 	if err != nil {
-		NewResponse(c, http.StatusInternalServerError, err.Error())
+		NewResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, accessPosts)
+	writeResponseBody(w, accessPosts)
 }
 
 // SetAccessPost godoc
@@ -61,23 +62,36 @@ func (a *Access) GetAccessPost(c *gin.Context) {
 // @Param        input       body     model.AccessSetInput true "Body for new post"
 // @Failure      400,401,404,500 {object} transport.Response
 // @Router       /api/post/access/{id} [post]
-func (a *Access) SetAccessPost(c *gin.Context) {
-	postId, err := parsePostId(c)
+func (a *Access) SetAccessPost(w http.ResponseWriter, r *http.Request) {
+	postId, err := parsePostId(r)
 	if err != nil {
-		NewResponse(c, http.StatusBadRequest, err.Error())
+		NewResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	var accessPosts model.AccessSetInput
-	err = c.Bind(&accessPosts)
+	accessPosts, err := parseAccess(r)
 	if err != nil {
-		NewResponse(c, http.StatusBadRequest, err.Error())
+		NewResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	err = a.accessService.SetAccessPost(a.ctx, postId, &accessPosts)
+	err = a.accessService.SetAccessPost(a.ctx, postId, accessPosts)
 	if err != nil {
-		NewResponse(c, http.StatusBadRequest, err.Error())
+		NewResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	NewResponse(c, http.StatusCreated, "Created")
+	NewResponse(w, http.StatusCreated, "Created")
+}
+
+func parseAccess(r *http.Request) (*model.AccessSetInput, error) {
+	var access model.AccessSetInput
+	byteArr, err := io.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(byteArr, &access)
+	if err != nil {
+		return nil, err
+	}
+
+	return &access, err
 }

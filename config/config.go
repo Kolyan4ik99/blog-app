@@ -1,7 +1,6 @@
 package config
 
 import (
-	"github.com/Kolyan4ik99/blog-app/pkg/postgres"
 	"github.com/spf13/viper"
 )
 
@@ -11,8 +10,6 @@ const (
 )
 
 type Config struct {
-	DB postgres.Config
-
 	Server struct {
 		Port int `mapstructure:"port"`
 	} `mapstructure:"server"`

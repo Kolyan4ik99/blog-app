@@ -46,14 +46,14 @@ func TestPost_Save_GetById(t *testing.T) {
 func TestPost_GetAllByAuthorId(t *testing.T) {
 	user := createRandomUser(t)
 
-	postsBefore, err := TestPostRepository.GetAllByAuthorId(ctx)
+	postsBefore, err := TestPostRepository.GetAll(ctx)
 
 	n := 1 + rand.Intn(5)
 	for i := 0; i < n; i++ {
 		createRandomPost(t, user)
 	}
 
-	postsAfter, err := TestPostRepository.GetAllByAuthorId(ctx)
+	postsAfter, err := TestPostRepository.GetAll(ctx)
 	require.NoError(t, err)
 	require.NotEmpty(t, postsAfter)
 

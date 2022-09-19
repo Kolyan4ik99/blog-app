@@ -30,7 +30,7 @@ func NewPost(repo repository.PostInterface) *Post {
 }
 
 func (p *Post) GetAllPosts(ctx context.Context) ([]*model.PostInfo, error) {
-	return p.repo.GetAllByAuthorId(ctx)
+	return p.repo.GetAll(ctx)
 }
 
 func (p *Post) GetPostByID(ctx context.Context, id int64) (*model.PostInfo, error) {

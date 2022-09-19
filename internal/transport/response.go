@@ -1,15 +1,19 @@
 package transport
 
 import (
-	"github.com/gin-gonic/gin"
+	"encoding/json"
+	"net/http"
 )
 
 type Response struct {
 	Message string
 }
 
-func NewResponse(c *gin.Context, status int, message string) {
-	c.JSON(status, Response{
-		Message: message,
-	})
+func NewResponse(w http.ResponseWriter, status int, message string) {
+	byteArr, err := json.Marshal(Response{Message: message})
+	if err != nil {
+		return
+	}
+	w.WriteHeader(status)
+	w.Write(byteArr)
 }

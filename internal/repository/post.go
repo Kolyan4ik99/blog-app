@@ -2,16 +2,14 @@ package repository
 
 import (
 	"context"
-	"fmt"
+	"database/sql"
 	"time"
 
 	"github.com/Kolyan4ik99/blog-app/internal/model"
-	"github.com/Kolyan4ik99/blog-app/pkg/postgres"
-	"github.com/jmoiron/sqlx"
 )
 
 type PostInterface interface {
-	GetAllByAuthorId(ctx context.Context) ([]*model.PostInfo, error)
+	GetAll(ctx context.Context) ([]*model.PostInfo, error)
 	GetById(ctx context.Context, id int64) (*model.PostInfo, error)
 	Save(ctx context.Context, newPost *model.PostInfoInput) (int64, error)
 	UpdateById(ctx context.Context, id int64, newPost *model.PostInfoUpdate) (*model.PostInfo, error)
@@ -20,86 +18,98 @@ type PostInterface interface {
 }
 
 type Post struct {
-	con *sqlx.DB
+	maxId     int64
+	postsInfo map[int64]*model.PostInfo
 }
 
-func NewPost(con *sqlx.DB) *Post {
-	return &Post{con: con}
+func NewPost() *Post {
+	return &Post{
+		maxId:     1,
+		postsInfo: make(map[int64]*model.PostInfo, 50),
+	}
 }
 
-func (p *Post) GetAllByAuthorId(ctx context.Context) ([]*model.PostInfo, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s`, postgres.PostTable)
+func (p *Post) GetAll(ctx context.Context) ([]*model.PostInfo, error) {
+	postsInfo := make([]*model.PostInfo, len(p.postsInfo))
 
-	var postsInfo []*model.PostInfo
-	err := p.con.SelectContext(ctx, &postsInfo, query)
-	if err != nil {
-		return nil, err
+	i := 0
+	for _, info := range p.postsInfo {
+		postsInfo[i] = info
+		i++
 	}
 	return postsInfo, nil
 }
 
 func (p *Post) GetById(ctx context.Context, id int64) (*model.PostInfo, error) {
-	query := fmt.Sprintf(`SELECT * from %s where id = $1`, postgres.PostTable)
-
-	result := p.con.QueryRowxContext(ctx, query, id)
-	if result.Err() != nil {
-		return nil, result.Err()
+	post, exist := p.postsInfo[id]
+	if !exist {
+		return nil, sql.ErrNoRows
 	}
-
-	var foundPost model.PostInfo
-	err := result.StructScan(&foundPost)
-	if err != nil {
-		return nil, err
-	}
-	return &foundPost, nil
+	return post, nil
 }
 
 func (p *Post) Save(ctx context.Context, newPost *model.PostInfoInput) (int64, error) {
-	query := fmt.Sprintf(`insert into %s 
-			(header, text, author, time_to_live) VALUES ($1, $2, $3, $4) returning id`, postgres.PostTable)
-
-	result := p.con.QueryRowxContext(ctx, query, newPost.Header, newPost.Text, newPost.Author, newPost.TTL)
-	if result.Err() != nil {
-		return 0, result.Err()
-	}
-
-	var id int64
-	err := result.Scan(&id)
+	valueTime, err := parseTime(newPost.TTL)
 	if err != nil {
 		return 0, err
 	}
-	return id, nil
+
+	p.postsInfo[p.maxId] = &model.PostInfo{
+		Id:        p.maxId,
+		Author:    newPost.Author,
+		Header:    newPost.Header,
+		Text:      newPost.Text,
+		TTL:       valueTime,
+		CreatedAt: time.Now(),
+	}
+	p.maxId++
+
+	return p.maxId - 1, nil
 }
 
 func (p *Post) UpdateById(ctx context.Context, id int64, updatePost *model.PostInfoUpdate) (*model.PostInfo, error) {
-	query := fmt.Sprintf(`update %s set header=$1, text=$2, time_to_live=$3 where id=$4 returning *`, postgres.PostTable)
-
-	result := p.con.QueryRowxContext(ctx, query, updatePost.Header, updatePost.Text, updatePost.TTL, id)
-	if result.Err() != nil {
-		return nil, result.Err()
+	post, exist := p.postsInfo[id]
+	if !exist {
+		return nil, sql.ErrNoRows
 	}
-	var postAfterUpdate model.PostInfo
-	err := result.StructScan(&postAfterUpdate)
+
+	valueTime, err := parseTime(updatePost.TTL)
 	if err != nil {
 		return nil, err
 	}
-	return &postAfterUpdate, nil
+
+	post.Text = updatePost.Text
+	post.Header = updatePost.Header
+	post.TTL = valueTime
+
+	return post, nil
 }
 
 func (p *Post) DeleteById(ctx context.Context, id int64) error {
-	query := fmt.Sprintf(`delete from %s where id=$1`, postgres.PostTable)
+	_, exist := p.postsInfo[id]
+	if !exist {
+		return sql.ErrNoRows
+	}
 
-	result := p.con.QueryRowxContext(ctx, query, id)
-	return result.Err()
+	delete(p.postsInfo, id)
+	return nil
 }
 
 func (p *Post) GetAllPostTTLBefore(ctx context.Context, ttl time.Time) ([]*model.PostInfo, error) {
-	query := fmt.Sprintf("Select * from %s where time_to_live < $1", postgres.PostTable)
-
 	var postsInfo []*model.PostInfo
-	err := p.con.SelectContext(ctx, &postsInfo, query, ttl)
+	for _, val := range p.postsInfo {
+		if val.TTL.Before(ttl) {
+			postsInfo = append(postsInfo, val)
+		}
+	}
+
+	return postsInfo, nil
+}
+
+func parseTime(timeFrom string) (*time.Time, error) {
+	valueTime, err := time.Parse(time.RFC3339, timeFrom)
 	if err != nil {
 		return nil, err
 	}
-	return postsInfo, nil
+	return &valueTime, nil
 }

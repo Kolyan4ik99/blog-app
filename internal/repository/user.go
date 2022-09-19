@@ -2,11 +2,9 @@ package repository
 
 import (
 	"context"
-	"fmt"
+	"database/sql"
 
 	"github.com/Kolyan4ik99/blog-app/internal/model"
-	"github.com/Kolyan4ik99/blog-app/pkg/postgres"
-	"github.com/jmoiron/sqlx"
 )
 
 type UserInterface interface {
@@ -18,81 +16,64 @@ type UserInterface interface {
 }
 
 type User struct {
-	con *sqlx.DB
+	maxId     int64
+	usersInfo map[int64]*model.UserInfo
 }
 
-func NewUser(newCon *sqlx.DB) *User {
+func NewUser() *User {
 	return &User{
-		con: newCon,
+		maxId:     1,
+		usersInfo: make(map[int64]*model.UserInfo, 50),
 	}
 }
 
 // GetById find user in table by id
 func (u *User) GetById(ctx context.Context, id int64) (*model.UserInfo, error) {
-	query := fmt.Sprintf(`select * from %s where id = $1`, postgres.UserTable)
-
-	result := u.con.QueryRowxContext(ctx, query, id)
-	if result.Err() != nil {
-		return nil, result.Err()
+	user, exist := u.usersInfo[id]
+	if !exist {
+		return nil, sql.ErrNoRows
 	}
-	var user model.UserInfo
-	err := result.StructScan(&user)
-	if err != nil {
-		return nil, err
-	}
-	return &user, nil
+	return user, nil
 }
 
 // Create insert user to table with users
 func (u *User) Create(ctx context.Context, newUser *model.UserInfo) (int64, error) {
-	query := fmt.Sprintf(`insert into %s (name, password, email, token) values ($1, $2, $3, $4) returning id`, postgres.UserTable)
-
-	rows := u.con.QueryRowxContext(ctx, query, newUser.Name, newUser.Password, newUser.Email, newUser.Token)
-	if rows.Err() != nil {
-		return 0, rows.Err()
+	u.usersInfo[u.maxId] = &model.UserInfo{
+		Id:       u.maxId,
+		Name:     newUser.Name,
+		Password: newUser.Password,
+		Email:    newUser.Email,
+		Token:    newUser.Token,
 	}
-	var newUserId int64
-	err := rows.Scan(&newUserId)
-	if err != nil {
-		return 0, err
-	}
-	return newUserId, nil
+	u.maxId++
+	return u.maxId - 1, nil
 }
 
 func (u *User) DeleteById(ctx context.Context, userId int64) error {
-	query := fmt.Sprintf(`delete from %s where id=$1`, postgres.UserTable)
-
-	resultDB := u.con.QueryRowxContext(ctx, query, userId)
-	return resultDB.Err()
+	_, exist := u.usersInfo[userId]
+	if !exist {
+		return sql.ErrNoRows
+	}
+	delete(u.usersInfo, userId)
+	return nil
 }
 
-func (u *User) UpdateById(ctx context.Context, userId int64, user *model.UserInfo) (*model.UserInfo, error) {
-	query := fmt.Sprintf(`update %s set name=$1, password=$2, email=$3 where id=$4 returning *`, postgres.UserTable)
-
-	resultDB := u.con.QueryRowxContext(ctx, query, user.Name, user.Password, user.Email, userId)
-	if resultDB.Err() != nil {
-		return nil, resultDB.Err()
+func (u *User) UpdateById(ctx context.Context, userId int64, updateUser *model.UserInfo) (*model.UserInfo, error) {
+	user, exist := u.usersInfo[userId]
+	if !exist {
+		return nil, sql.ErrNoRows
 	}
-	var updateUser model.UserInfo
-	err := resultDB.StructScan(&updateUser)
-	if err != nil {
-		return nil, err
-	}
-	return &updateUser, nil
+	user.Name = updateUser.Name
+	user.Password = updateUser.Password
+	user.Email = updateUser.Email
+	return user, nil
 }
 
 func (u *User) GetByToken(ctx context.Context, token string) (*model.UserInfo, error) {
-	//TODO implement me
-	query := fmt.Sprintf(`select * from %s where token = $1`, postgres.UserTable)
-
-	result := u.con.QueryRowxContext(ctx, query, token)
-	if result.Err() != nil {
-		return nil, result.Err()
+	for _, info := range u.usersInfo {
+		if info.Token == token {
+			return info, nil
+		}
 	}
-	var user model.UserInfo
-	err := result.StructScan(&user)
-	if err != nil {
-		return nil, err
-	}
-	return &user, nil
+	return nil, sql.ErrNoRows
 }

@@ -3,22 +3,24 @@ package transport
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/Kolyan4ik99/blog-app/internal/model"
 	"github.com/Kolyan4ik99/blog-app/internal/service"
-	"github.com/gin-gonic/gin"
 )
 
 type PostInterface interface {
-	GetAllPosts(c *gin.Context)
-	GetPostByID(c *gin.Context)
-	UploadPost(c *gin.Context)
-	UpdatePostByID(c *gin.Context)
-	DeletePostByID(c *gin.Context)
+	GetAllPosts(w http.ResponseWriter, r *http.Request)
+	GetPostByID(w http.ResponseWriter, r *http.Request)
+	UploadPost(w http.ResponseWriter, r *http.Request)
+	UpdatePostByID(w http.ResponseWriter, r *http.Request)
+	DeletePostByID(w http.ResponseWriter, r *http.Request)
 }
 
 type Post struct {
@@ -47,13 +49,14 @@ var (
 // @Success      200  {object}  []model.PostInfo
 // @Failure      400,401,404,500 {object} transport.Response
 // @Router       /api/post/ [get]
-func (p *Post) GetAllPosts(c *gin.Context) {
+func (p *Post) GetAllPosts(w http.ResponseWriter, r *http.Request) {
 	foundPosts, err := p.postService.GetAllPosts(p.ctx)
 	if err != nil {
-		NewResponse(c, http.StatusInternalServerError, err.Error())
+		NewResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, foundPosts)
+
+	writeResponseBody(w, foundPosts)
 }
 
 // GetPostByID godoc
@@ -67,23 +70,23 @@ func (p *Post) GetAllPosts(c *gin.Context) {
 // @Success      200  {object}  model.PostInfo
 // @Failure      400,401,404,500 {object} transport.Response
 // @Router       /api/post/{id} [get]
-func (p *Post) GetPostByID(c *gin.Context) {
-	postId, err := parsePostId(c)
+func (p *Post) GetPostByID(w http.ResponseWriter, r *http.Request) {
+	postId, err := parsePostId(r)
 	if err != nil {
-		NewResponse(c, http.StatusBadRequest, err.Error())
+		NewResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	foundPost, err := p.postService.GetPostByID(p.ctx, postId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			NewResponse(c, http.StatusNotFound, err.Error())
+			NewResponse(w, http.StatusNotFound, err.Error())
 		} else {
-			NewResponse(c, http.StatusInternalServerError, err.Error())
+			NewResponse(w, http.StatusInternalServerError, err.Error())
 		}
 		return
 	}
-	c.JSON(http.StatusOK, foundPost)
+	writeResponseBody(w, foundPost)
 }
 
 // UploadPost godoc
@@ -97,24 +100,24 @@ func (p *Post) GetPostByID(c *gin.Context) {
 // @Success      200  {object}  transport.Response
 // @Failure      400,401,404,500 {object} transport.Response
 // @Router       /api/post/ [post]
-func (p *Post) UploadPost(c *gin.Context) {
-	post, err := parseBodyToInput(c)
+func (p *Post) UploadPost(w http.ResponseWriter, r *http.Request) {
+	post, err := parseBodyToInput(r)
 	if err != nil {
-		NewResponse(c, http.StatusBadRequest, err.Error())
+		NewResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	id, err := p.postService.UploadPost(p.ctx, post)
 	if err != nil {
 		if errors.Is(err, service.ErrBadTTL) {
-			NewResponse(c, http.StatusBadRequest, err.Error())
+			NewResponse(w, http.StatusBadRequest, err.Error())
 		} else {
-			NewResponse(c, http.StatusInternalServerError, err.Error())
+			NewResponse(w, http.StatusInternalServerError, err.Error())
 		}
 		return
 	}
 
-	NewResponse(c, http.StatusCreated, fmt.Sprintf("post_id: %d", id))
+	NewResponse(w, http.StatusCreated, fmt.Sprintf("post_id: %d", id))
 }
 
 // UpdatePostByID godoc
@@ -129,24 +132,24 @@ func (p *Post) UploadPost(c *gin.Context) {
 // @Success      200  {object}  model.PostInfo
 // @Failure      400,401,404,500 {object} transport.Response
 // @Router       /api/post/{id} [put]
-func (p *Post) UpdatePostByID(c *gin.Context) {
-	postId, err := parsePostId(c)
+func (p *Post) UpdatePostByID(w http.ResponseWriter, r *http.Request) {
+	postId, err := parsePostId(r)
 	if err != nil {
-		NewResponse(c, http.StatusBadRequest, err.Error())
+		NewResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	post, err := parseBodyToUpdate(c)
+	post, err := parseBodyToUpdate(r)
 	if err != nil {
-		NewResponse(c, http.StatusBadRequest, err.Error())
+		NewResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	updatePost, err := p.postService.UpdatePostByID(p.ctx, postId, post)
 	if err != nil {
-		NewResponse(c, http.StatusInternalServerError, err.Error())
+		NewResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, updatePost)
+	writeResponseBody(w, updatePost)
 }
 
 // DeletePostByID godoc
@@ -160,22 +163,24 @@ func (p *Post) UpdatePostByID(c *gin.Context) {
 // @Success      200  {object}  transport.Response
 // @Failure      400,401,404,500 {object} transport.Response
 // @Router       /api/post/{id} [delete]
-func (p *Post) DeletePostByID(c *gin.Context) {
-	postId, err := parsePostId(c)
+func (p *Post) DeletePostByID(w http.ResponseWriter, r *http.Request) {
+	postId, err := parsePostId(r)
 	if err != nil {
-		NewResponse(c, http.StatusBadRequest, err.Error())
+		NewResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
+
 	err = p.postService.DeletePostByID(p.ctx, postId)
 	if err != nil {
-		NewResponse(c, http.StatusInternalServerError, err.Error())
+		NewResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.Status(http.StatusOK)
+	w.WriteHeader(http.StatusOK)
 }
 
-func parsePostId(c *gin.Context) (int64, error) {
-	strId := c.Param("id")
+func parsePostId(r *http.Request) (int64, error) {
+	strs := strings.Split(r.URL.RequestURI(), "/")
+	strId := strs[len(strs)-1]
 	if strId == "" {
 		return -1, ErrBadParam
 	}
@@ -190,14 +195,40 @@ func parsePostId(c *gin.Context) (int64, error) {
 	return int64(num), nil
 }
 
-func parseBodyToInput(c *gin.Context) (*model.PostInfoInput, error) {
+func parseBodyToInput(r *http.Request) (*model.PostInfoInput, error) {
 	var post model.PostInfoInput
-	err := c.Bind(&post)
+	byteArr, err := io.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(byteArr, &post)
+	if err != nil {
+		return nil, err
+	}
+
 	return &post, err
 }
 
-func parseBodyToUpdate(c *gin.Context) (*model.PostInfoUpdate, error) {
+func parseBodyToUpdate(r *http.Request) (*model.PostInfoUpdate, error) {
 	var post model.PostInfoUpdate
-	err := c.Bind(&post)
+	byteArr, err := io.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(byteArr, &post)
+	if err != nil {
+		return nil, err
+	}
+
 	return &post, err
+}
+
+func writeResponseBody(w http.ResponseWriter, body interface{}) {
+	byteArr, err := json.Marshal(body)
+	if err != nil {
+		NewResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write(byteArr)
 }
