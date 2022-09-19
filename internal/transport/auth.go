@@ -3,18 +3,18 @@ package transport
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
 	"github.com/Kolyan4ik99/blog-app/internal/logger"
 	"github.com/Kolyan4ik99/blog-app/internal/model"
 	"github.com/Kolyan4ik99/blog-app/internal/service"
-	"github.com/gin-gonic/gin"
 )
 
 type AuthInterface interface {
-	Signup(c *gin.Context)
-	Signin(c *gin.Context)
+	Signup(w http.ResponseWriter, r *http.Request)
+	Signin(w http.ResponseWriter, r *http.Request)
 	CheckToken(token string) bool
 }
 
@@ -38,34 +38,35 @@ func NewAuth(ctx context.Context, authService service.AuthInterface) *Auth {
 // @Success      200  {object}  model.AuthOutput
 // @Failure      400,401,404 {object} transport.Response
 // @Router       /auth/sing-up [post]
-func (a *Auth) Signup(c *gin.Context) {
+func (a *Auth) Signup(w http.ResponseWriter, r *http.Request) {
 	var user model.AuthInput
-	arr, err := io.ReadAll(c.Request.Body)
+	arr, err := io.ReadAll(r.Body)
 	if err != nil {
-		NewResponse(c, http.StatusBadRequest, err.Error())
+		NewResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	defer c.Request.Body.Close()
+	defer r.Body.Close()
 	err = json.Unmarshal(arr, &user)
 	if err != nil {
-		NewResponse(c, http.StatusBadRequest, err.Error())
+		NewResponse(w, http.StatusBadRequest, err.Error())
 		logger.Logger.Warningf("Bad request: %s\n", err)
 		return
 	}
 
-	id, err := a.authService.SignUp(a.ctx, &user)
+	auth, err := a.authService.SignUp(a.ctx, &user)
 	if err != nil {
-		NewResponse(c, http.StatusBadRequest, err.Error())
+		NewResponse(w, http.StatusBadRequest, err.Error())
 		logger.Logger.Warningf("Bad request: %s\n", err)
 		return
 	}
 
-	c.JSON(http.StatusCreated, id)
+	w.WriteHeader(http.StatusCreated)
+	writeResponseBody(w, fmt.Sprintf("id=[%d], token=[%s]", auth.Id, auth.Token))
 }
 
-func (a *Auth) Signin(c *gin.Context) {
+func (a *Auth) Signin(w http.ResponseWriter, r *http.Request) {
 	// TODO реализовать метод
-	c.JSON(http.StatusInternalServerError, "")
+	w.WriteHeader(http.StatusInternalServerError)
 }
 
 func (a *Auth) CheckToken(token string) bool {

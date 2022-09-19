@@ -2,11 +2,9 @@ package repository
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/Kolyan4ik99/blog-app/internal/model"
-	"github.com/Kolyan4ik99/blog-app/pkg/postgres"
-	"github.com/jmoiron/sqlx"
 )
 
 type AccessInterface interface {
@@ -17,41 +15,43 @@ type AccessInterface interface {
 }
 
 type Access struct {
-	con *sqlx.DB
+	info map[int64][]*model.AccessInfo
 }
 
-func NewAccess(con *sqlx.DB) *Access {
-	return &Access{con: con}
+type AccessesInfo struct {
+	info []*model.AccessInfo
+}
+
+func NewAccess() *Access {
+	return &Access{
+		info: make(map[int64][]*model.AccessInfo, 0),
+	}
 }
 
 func (a *Access) GetAllByPostId(ctx context.Context, postId int64) ([]*model.AccessInfo, error) {
-	query := fmt.Sprintf("select * from %s where post_id = $1", postgres.AccessTable)
-
-	var accessInfo []*model.AccessInfo
-	err := a.con.SelectContext(ctx, &accessInfo, query, postId)
-	if err != nil {
-		return nil, err
+	infos, exist := a.info[postId]
+	if !exist {
+		return nil, errors.New("bad post_id")
 	}
-	return accessInfo, nil
+	return infos, nil
 }
 
 func (a *Access) SaveAllAccess(ctx context.Context, postId int64, accessLvl string) error {
-	query := fmt.Sprintf("insert into %s (post_id, user_id, access) values ($1, $2, $3)", postgres.AccessTable)
-
-	result := a.con.QueryRowxContext(ctx, query, postId, 0, accessLvl)
-	return result.Err()
+	a.info[postId] = make([]*model.AccessInfo, 0)
+	a.info[postId] = append(a.info[postId], &model.AccessInfo{PostId: postId, Access: accessLvl, UserId: 0})
+	return nil
 }
 
 func (a *Access) SaveAccess(ctx context.Context, postId int64, userId int64, isAccess string) error {
-	query := fmt.Sprintf("insert into %s (post_id, user_id, access) values ($1, $2, $3)", postgres.AccessTable)
-
-	result := a.con.QueryRowxContext(ctx, query, postId, userId, isAccess)
-	return result.Err()
+	_, exist := a.info[postId]
+	if !exist {
+		a.info[postId] = make([]*model.AccessInfo, 0)
+	}
+	a.info[postId] = append(a.info[postId], &model.AccessInfo{PostId: postId, Access: isAccess, UserId: userId})
+	return nil
 }
 
 func (a *Access) DeleteAllAccess(ctx context.Context, postId int64) error {
-	query := fmt.Sprintf("DELETE FROM %s WHERE post_id = $1", postgres.AccessTable)
-
-	result := a.con.QueryRowxContext(ctx, query, postId)
-	return result.Err()
+	delete(a.info, postId)
+	return nil
 }

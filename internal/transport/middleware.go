@@ -1,11 +1,10 @@
 package transport
 
 import (
+	"container/list"
 	"errors"
 	"net/http"
 	"strings"
-
-	"github.com/gin-gonic/gin"
 )
 
 var (
@@ -13,23 +12,55 @@ var (
 	ErrInvalidToken = errors.New("invalid token")
 )
 
-func (h *Handler) authMiddleware(c *gin.Context) {
-	token, err := parseToken(c)
-	if err != nil {
-		NewResponse(c, http.StatusUnauthorized, err.Error())
-		c.Abort()
-		return
-	}
-	if !h.authTransport.CheckToken(token) {
-		NewResponse(c, http.StatusUnauthorized, ErrInvalidToken.Error())
-		c.Abort()
-		return
-	}
-	c.Next()
+type MiddlewareType func(http.ResponseWriter, *http.Request, func(http.ResponseWriter, *http.Request))
+
+type MiddlewareMux struct {
+	http.ServeMux
+	middlewares   list.List
+	authTransport AuthInterface
 }
 
-func parseToken(c *gin.Context) (string, error) {
-	header := c.Request.Header.Get("Authorization")
+func NewMiddlewareMux(authTransport AuthInterface) *MiddlewareMux {
+	return &MiddlewareMux{authTransport: authTransport}
+}
+
+func (mux *MiddlewareMux) AppendMiddleware(middleware func(http.ResponseWriter, *http.Request, func(http.ResponseWriter, *http.Request))) {
+	// Append middleware to the end
+	mux.middlewares.PushBack(MiddlewareType(middleware))
+}
+
+func (mux *MiddlewareMux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	mux.nextMiddleware(mux.middlewares.Front())(w, req)
+}
+
+func (mux *MiddlewareMux) nextMiddleware(el *list.Element) func(w http.ResponseWriter, req *http.Request) {
+	if el != nil {
+		return func(w http.ResponseWriter, req *http.Request) {
+			el.Value.(MiddlewareType)(w, req, mux.nextMiddleware(el.Next()))
+		}
+	}
+	return mux.ServeMux.ServeHTTP
+}
+
+func (mux *MiddlewareMux) authMiddleware(w http.ResponseWriter, req *http.Request, next func(http.ResponseWriter, *http.Request)) {
+	if strings.Contains(req.RequestURI, "/v1/auth/") {
+		next(w, req)
+		return
+	}
+	token, err := parseToken(req)
+	if err != nil {
+		NewResponse(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if !mux.authTransport.CheckToken(token) {
+		NewResponse(w, http.StatusUnauthorized, ErrInvalidToken.Error())
+		return
+	}
+	next(w, req)
+}
+
+func parseToken(r *http.Request) (string, error) {
+	header := r.Header.Get("Authorization")
 	if header == "" {
 		return "", ErrEmptyToken
 	}
